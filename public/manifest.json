@@ -1,0 +1,24 @@
+{
+  "name": "Gremami P2P - Logística Descentralizada",
+  "short_name": "Gremami P2P",
+  "description": "Plataforma P2P y logística descentralizada con micropagos ValensCoin y acuerdos en efectivo",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A1128",
+  "theme_color": "#0A1128",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
