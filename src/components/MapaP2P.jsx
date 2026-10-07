@@ -428,7 +428,9 @@ export default function MapaP2P(props) {
     liveRequests,
     createAuctionRequest,
     submitCadeteQuote,
-    awardAuctionOffer
+    awardAuctionOffer,
+    userGpsCoords,
+    hasLiveGps: appHasLiveGps
   } = useApp();
 
   const isDark = theme === 'dark';
@@ -487,8 +489,18 @@ export default function MapaP2P(props) {
   const [cadeteQuoteNote, setCadeteQuoteNote] = useState('Llego puntual en 15 min en bici, tengo mochila térmica sellada.');
 
   // 1. Geolocalización en Vivo del Usuario (GPS) con Fallback a Plaza Solares / Av. Belgrano
-  const [userCoords, setUserCoords] = useState(ALTA_GRACIA_CENTER);
-  const [hasLiveGps, setHasLiveGps] = useState(false);
+  const [userCoords, setUserCoords] = useState(userGpsCoords || ALTA_GRACIA_CENTER);
+  const [hasLiveGps, setHasLiveGps] = useState(appHasLiveGps || false);
+
+  // Sincronizar reactivamente con el rastreador en tiempo real (watchPosition)
+  useEffect(() => {
+    if (userGpsCoords && Array.isArray(userGpsCoords) && userGpsCoords.length === 2) {
+      setUserCoords(userGpsCoords);
+    }
+    if (appHasLiveGps) {
+      setHasLiveGps(true);
+    }
+  }, [userGpsCoords, appHasLiveGps]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
@@ -500,11 +512,11 @@ export default function MapaP2P(props) {
         },
         (error) => {
           console.warn('Geolocalización no disponible o permiso denegado:', error.message);
-          // Fallback de Respaldo por defecto: Plaza Solares / Av. Belgrano, Alta Gracia
-          setUserCoords(ALTA_GRACIA_CENTER);
-          setHasLiveGps(false);
+          if (!userGpsCoords) {
+            setUserCoords(ALTA_GRACIA_CENTER);
+          }
         },
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
       );
     }
   }, []);

@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { ARGENTINE_FIAT_PROVIDERS } from '../data/mockData';
+import LiveMap, { ALTA_GRACIA_CENTER } from './LiveMap';
+import { profileService } from '../lib/supabaseClient';
 import {
   User,
   Star,
@@ -29,6 +31,8 @@ import {
   CheckCircle2,
   Clock,
   MapPin,
+  Locate,
+  Navigation,
   ArrowUpRight,
   ArrowDownLeft,
   ShieldAlert,
@@ -82,10 +86,37 @@ export default function ProfileScreen() {
     updateFiatPaymentConfig,
     currentUser,
     openAuthModal,
-    logout
+    logout,
+    userGpsCoords,
+    setUserGpsCoords,
+    userGpsAccuracy,
+    hasLiveGps
   } = useApp();
 
   const isDark = theme === 'dark';
+
+  // Forzar actualización GPS manual y sincronización en Supabase
+  const handleForceGpsSync = () => {
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const coords = [Number(pos.coords.latitude.toFixed(6)), Number(pos.coords.longitude.toFixed(6))];
+          if (setUserGpsCoords) setUserGpsCoords(coords);
+          if (currentUser?.id) {
+            await profileService.updateLocation(currentUser.id, {
+              lat: coords[0],
+              lng: coords[1]
+            }).catch(() => {});
+          }
+          showToast(`📍 Posición GPS sincronizada: ${coords[0]}, ${coords[1]}`, 'success');
+        },
+        (err) => {
+          showToast(`Error al obtener señal GPS: ${err.message}`, 'error');
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    }
+  };
 
   // Internal Dashboard tabs: 'profile' (Datos y Vehículo), 'metrics' (Métricas y Finanzas), 'milestones' (Hitos y Referidos)
   const [activeSection, setActiveSection] = useState('profile');
@@ -882,6 +913,45 @@ export default function ProfileScreen() {
                   isDark ? 'bg-[#070C1E] border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-900'
                 }`}
               />
+            </div>
+
+            {/* Mapa GPS en Vivo y Posición Satelital */}
+            <div className={`p-3 rounded-2xl border space-y-2.5 ${
+              isDark ? 'bg-[#070C1E] border-slate-800' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400">
+                    <Navigation className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-blue-400">Ubicación GPS en Tiempo Real</h4>
+                    <p className="text-[10px] text-slate-500 font-mono">
+                      {userGpsCoords ? `Lat: ${userGpsCoords[0].toFixed(5)}, Lng: ${userGpsCoords[1].toFixed(5)}` : 'Alta Gracia (-31.6529, -64.4283)'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleForceGpsSync}
+                  className="px-2.5 py-1 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-[10.5px] font-bold flex items-center gap-1 active:scale-95"
+                >
+                  <Locate className="w-3 h-3" />
+                  <span>Sincronizar GPS</span>
+                </button>
+              </div>
+
+              {/* Mini Mapa Interactivo OpenStreetMap */}
+              <div className="rounded-xl overflow-hidden border border-slate-700/60 h-44 w-full relative">
+                <LiveMap
+                  center={userGpsCoords || ALTA_GRACIA_CENTER}
+                  zoom={15}
+                  height="100%"
+                  isDark={isDark}
+                  showUserLocation={true}
+                  showPeers={false}
+                />
+              </div>
             </div>
 
             {/* Selector de Vehículo y Fletes */}

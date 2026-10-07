@@ -18,7 +18,7 @@ import {
   recordDeliveryTransactionInSupabase,
   saveFiatPaymentConfigToSupabase 
 } from '../lib/supabase';
-import { authService } from '../lib/supabaseClient';
+import { authService, profileService, isSupabaseConfigured } from '../lib/supabaseClient';
 
 const AppContext = createContext();
 
@@ -112,6 +112,11 @@ export function AppProvider({ children }) {
 
   // GPS visibility
   const [isGpsActive, setIsGpsActive] = useState(true);
+
+  // Coordenadas GPS en Tiempo Real del Usuario (Alta Gracia / Gran Córdoba)
+  const [userGpsCoords, setUserGpsCoords] = useState([-31.6529, -64.4283]);
+  const [userGpsAccuracy, setUserGpsAccuracy] = useState(null);
+  const [hasLiveGps, setHasLiveGps] = useState(false);
 
   // Selected peer for map bottom-sheet
   const [selectedPeer, setSelectedPeer] = useState(null);
@@ -248,6 +253,114 @@ export function AppProvider({ children }) {
 
     return () => {
       authListener?.subscription?.unsubscribe();
+    };
+  }, []);
+
+  // 3. Seguimiento GPS Continuo en Tiempo Real (watchPosition) con sincronización en Supabase
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('geolocation' in navigator)) return;
+
+    let lastSentTimestamp = 0;
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        const coords = [Number(latitude.toFixed(6)), Number(longitude.toFixed(6))];
+        setUserGpsCoords(coords);
+        setUserGpsAccuracy(accuracy);
+        setHasLiveGps(true);
+
+        // Si el usuario está autenticado, actualizar posición en Supabase con throttle de 15 segundos
+        const now = Date.now();
+        if (currentUser?.id && isSupabaseConfigured && (now - lastSentTimestamp > 15000)) {
+          lastSentTimestamp = now;
+          profileService.updateLocation(currentUser.id, {
+            lat: coords[0],
+            lng: coords[1]
+          }).catch(() => {});
+        }
+      },
+      (err) => {
+        console.warn('AppContext GPS aviso:', err.message);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 4000 }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [currentUser?.id]);
+
+  // 4. Suscripción Realtime a Supabase: Perfiles y Ubicaciones de Cadetes en Alta Gracia
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    // Cargar cadetes remotos activos en primera instancia
+    profileService.getOnlineCadetes().then((onlineProfiles) => {
+      if (onlineProfiles && onlineProfiles.length > 0) {
+        setPeers((prevPeers) => {
+          const merged = [...prevPeers];
+          onlineProfiles.forEach((remote) => {
+            const idx = merged.findIndex((p) => p.id === remote.id);
+            const peerData = {
+              id: remote.id,
+              name: remote.full_name || 'Cadete Gremami',
+              category: remote.vehicle_type === 'bicicleta' ? 'bicicleta' :
+                remote.vehicle_type === 'caminando' ? 'caminando' :
+                remote.vehicle_type === 'auto' ? 'automovil' :
+                remote.vehicle_type === 'flete' ? 'fletes' : 'motocicleta',
+              serviceModality: remote.service_modality || 'mixto',
+              lat: remote.lat,
+              lng: remote.lng,
+              is_online: remote.is_online,
+              avatar: remote.avatar_url,
+              phone: remote.whatsapp,
+              rating: 5.0
+            };
+            if (idx >= 0) {
+              merged[idx] = { ...merged[idx], ...peerData };
+            } else {
+              merged.push(peerData);
+            }
+          });
+          return merged;
+        });
+      }
+    }).catch(() => {});
+
+    // Suscripción a cambios en vivo en la tabla profiles (movimiento GPS en tiempo real)
+    const sub = profileService.subscribeToProfiles((payload) => {
+      if (payload?.new) {
+        const u = payload.new;
+        setPeers((prevPeers) => {
+          const idx = prevPeers.findIndex((p) => p.id === u.id);
+          const peerData = {
+            id: u.id,
+            name: u.full_name || 'Cadete Gremami',
+            category: u.vehicle_type === 'bicicleta' ? 'bicicleta' :
+              u.vehicle_type === 'caminando' ? 'caminando' :
+              u.vehicle_type === 'auto' ? 'automovil' :
+              u.vehicle_type === 'flete' ? 'fletes' : 'motocicleta',
+            serviceModality: u.service_modality || 'mixto',
+            lat: u.lat,
+            lng: u.lng,
+            is_online: u.is_online,
+            avatar: u.avatar_url,
+            phone: u.whatsapp,
+            rating: 5.0
+          };
+          if (idx >= 0) {
+            const next = [...prevPeers];
+            next[idx] = { ...next[idx], ...peerData };
+            return next;
+          } else {
+            return [...prevPeers, peerData];
+          }
+        });
+      }
+    });
+
+    return () => {
+      sub?.unsubscribe();
     };
   }, []);
 
@@ -1524,6 +1637,11 @@ export function AppProvider({ children }) {
         // Real-time Online/Offline status
         isOnline,
         toggleOnlineStatus,
+        // Real-time GPS location
+        userGpsCoords,
+        setUserGpsCoords,
+        userGpsAccuracy,
+        hasLiveGps,
         // Expanded user profile, images, verification, milestones & referrals
         userProfile,
         updateUserProfile,

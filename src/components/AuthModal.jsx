@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { authService, isSupabaseConfigured } from '../lib/supabaseClient';
-import { X, Mail, Lock, User, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
+import { authService, profileService, isSupabaseConfigured } from '../lib/supabaseClient';
+import { X, Mail, Lock, User, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, Sparkles, MapPin, Locate, Compass } from 'lucide-react';
 
 export default function AuthModal({ isOpen, onClose }) {
   const { theme, showToast, setUserName, setUserProfile, setBalance, currentUser } = useApp();
@@ -17,9 +17,42 @@ export default function AuthModal({ isOpen, onClose }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Estado de Geolocalización en Registro / Onboarding
+  const [userCoords, setUserCoords] = useState(null);
+  const [gpsStatus, setGpsStatus] = useState('idle'); // 'idle' | 'locating' | 'granted' | 'denied'
+
+  // Solicitar ubicación GPS en tiempo real
+  const requestGpsLocation = () => {
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      setGpsStatus('locating');
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords = [Number(pos.coords.latitude.toFixed(6)), Number(pos.coords.longitude.toFixed(6))];
+          setUserCoords(coords);
+          setGpsStatus('granted');
+          showToast('📍 Ubicación GPS detectada con éxito', 'success');
+        },
+        (err) => {
+          console.warn('Permiso de GPS no concedido en registro:', err.message);
+          setGpsStatus('denied');
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      setGpsStatus('denied');
+    }
+  };
+
   useEffect(() => {
     if (isOpen && currentUser) onClose();
   }, [currentUser, isOpen, onClose]);
+
+  // Si pasa a registro, solicitar automáticamente permiso de ubicación
+  useEffect(() => {
+    if (mode === 'register' && gpsStatus === 'idle') {
+      requestGpsLocation();
+    }
+  }, [mode, gpsStatus]);
 
   if (!isOpen) return null;
 
@@ -28,6 +61,9 @@ export default function AuthModal({ isOpen, onClose }) {
     setMode(newMode);
     setErrorMessage('');
     setSuccessMessage('');
+    if (newMode === 'register' && gpsStatus === 'idle') {
+      requestGpsLocation();
+    }
   };
 
   // 1. Registro e Inicio de Sesión con Google OAuth
@@ -74,6 +110,15 @@ export default function AuthModal({ isOpen, onClose }) {
         if (wallet && typeof wallet.valens_balance === 'number') {
           setBalance(wallet.valens_balance);
         }
+
+        // Guardar coordenadas GPS en profiles si fueron capturadas
+        if (userCoords && data?.user?.id) {
+          await profileService.updateLocation(data.user.id, {
+            lat: userCoords[0],
+            lng: userCoords[1]
+          }).catch(() => {});
+        }
+
         showToast(`¡Bienvenido, ${name}! Sesión conectada con Google. Billetera: 10.0 VAL`, 'success');
         onClose();
       }
@@ -175,6 +220,15 @@ export default function AuthModal({ isOpen, onClose }) {
           if (wallet && typeof wallet.valens_balance === 'number') {
             setBalance(wallet.valens_balance);
           }
+
+          // Guardar coordenadas GPS en profiles de Supabase
+          if (userCoords && data?.user?.id) {
+            await profileService.updateLocation(data.user.id, {
+              lat: userCoords[0],
+              lng: userCoords[1]
+            }).catch(() => {});
+          }
+
           setSuccessMessage(`¡Bienvenido ${name}! Tu cuenta y billetera inicial de 10.0 VAL han sido creadas.`);
           showToast(`¡Cuenta creada con éxito! Bienvenido ${name}. Billetera: 10.0 VAL`, 'success');
           setTimeout(() => {
@@ -487,6 +541,40 @@ export default function AuthModal({ isOpen, onClose }) {
                     📦 Cliente / Emisor
                   </button>
                 </div>
+              </div>
+            )}
+
+            {mode === 'register' && (
+              <div className="p-3 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-xs">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-blue-400 text-[11px]">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>Ubicación GPS Inicial</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={requestGpsLocation}
+                    disabled={isWorking || gpsStatus === 'locating'}
+                    className="text-[10px] text-blue-400 hover:text-blue-300 font-bold underline flex items-center gap-1"
+                  >
+                    <Locate className={`w-3 h-3 ${gpsStatus === 'locating' ? 'animate-spin' : ''}`} />
+                    <span>{gpsStatus === 'granted' ? 'Actualizar GPS' : 'Detectar GPS'}</span>
+                  </button>
+                </div>
+                {userCoords ? (
+                  <div className="flex items-center gap-2 text-emerald-400 text-[11px] font-mono">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span>Lat: {userCoords[0].toFixed(4)}, Lng: {userCoords[1].toFixed(4)} (Alta Gracia)</span>
+                  </div>
+                ) : gpsStatus === 'locating' ? (
+                  <p className="text-[10.5px] text-amber-300 animate-pulse">
+                    Detectando señal satelital del dispositivo...
+                  </p>
+                ) : (
+                  <p className="text-[10.5px] text-slate-400">
+                    Permite el acceso a ubicación para fijar tu posición en el mapa P2P.
+                  </p>
+                )}
               </div>
             )}
 
