@@ -417,37 +417,7 @@ export function AppProvider({ children }) {
     };
   }, []);
 
-  // Ref para rastrear alertas ya disparadas y evitar spam
-  const alertedIdsRef = React.useRef(new Set());
 
-  // Alerta de Cercanía por Radio Configurable (Haversine)
-  useEffect(() => {
-    if (!userGpsCoords || !Array.isArray(userGpsCoords) || userGpsCoords.length < 2) return;
-    const [uLat, uLng] = userGpsCoords;
-    const radius = userProfile?.coverageRadius ?? 5;
-
-    const items = role === 'cadete'
-      ? (liveRequests || []).filter((r) => r.lat && r.lng && r.status === 'open')
-      : (peers || []).filter((p) => p.lat && p.lng && p.isOnline);
-
-    for (const item of items) {
-      if (alertedIdsRef.current.has(item.id)) continue;
-      const dist = haversineKm(uLat, uLng, Number(item.lat), Number(item.lng));
-      if (dist <= radius) {
-        alertedIdsRef.current.add(item.id);
-        const label = item.clientName || item.name || 'Servicio cercano';
-        showToast(`🔔 ¡Nuevo a ${dist.toFixed(1)} km! ${label}`, 'info');
-        setActiveAlert({
-          id: item.id,
-          title: `🔔 ¡Nuevo servicio a ${dist.toFixed(1)} km!`,
-          subtitle: item.description || item.categoryLabel || label,
-          request: item
-        });
-        playP2PAlertChime();
-        break;
-      }
-    }
-  }, [liveRequests, peers, userGpsCoords, role, userProfile?.coverageRadius]);
 
   // Helper to switch role with feedback
   const handleSetRole = (newRole) => {
@@ -926,14 +896,6 @@ export function AppProvider({ children }) {
     playP2PAlertChime();
     showToast('🚀 ¡Solicitud publicada en vivo a todos los prestadores de Alta Gracia!', 'success');
 
-    // Alerta auditiva/visual para prestadores y cadetes
-    setActiveAlert({
-      id: newReq.id,
-      title: '🔔 ¡Alarma P2P: Nuevo cliente a 0.4 km buscando entrega!',
-      subtitle: `${newReq.clientName} solicita: ${newReq.description}`,
-      request: newReq
-    });
-
     return newReq;
   };
 
@@ -976,16 +938,9 @@ export function AppProvider({ children }) {
     setActiveAlert(null);
   };
 
-  // Disparar alarma sonora y visual de prueba
+  // Disparar alarma sonora de prueba (sin pop-up flotante)
   const triggerAlertTest = () => {
     playP2PAlertChime();
-    setActiveAlert({
-      id: `alert-${Date.now()}`,
-      title: '🔔 ¡Alarma P2P: Nuevo cliente a 0.5 km buscando entrega!',
-      subtitle: 'Lucía M. solicita: Retiro de medicamentos en Farmacia Central y entrega en B° Pellegrini',
-      request: liveRequests[0] || INITIAL_LIVE_REQUESTS[0]
-    });
-    showToast('🔔 Alarma P2P en vivo emitida a 0.5 km', 'info');
   };
 
   // 3. Flujo de Habilitación Condicional del Chat P2P
