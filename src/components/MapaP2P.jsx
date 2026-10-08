@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useApp, CURRENT_CADET_ID } from '../context/AppContext';
 import MotorcycleIcon from './MotorcycleIcon';
 import L from 'leaflet';
@@ -300,8 +300,8 @@ const createLandmarkIcon = (emoji, title, subtitle, isDark) => {
   });
 };
 
-// Controlador auxiliar para mover el mapa reactivamente con flyTo
-function MapController({ selectedNode, selectedAuction, recenterTrigger, userCoords, expandTrigger }) {
+// Controlador auxiliar para mover el mapa reactivamente con flyTo / fitBounds
+function MapController({ selectedNode, selectedAuction, recenterTrigger, userCoords, expandTrigger, fitBoundsTrigger, fitBoundsCoords }) {
   const map = useMap();
 
   useEffect(() => {
@@ -323,6 +323,26 @@ function MapController({ selectedNode, selectedAuction, recenterTrigger, userCoo
     }
   }, [recenterTrigger, map, userCoords]);
 
+  // fitBounds al conjunto de nodos filtrados cuando cambia la categoria
+  useEffect(() => {
+    if (fitBoundsTrigger === 0) return;
+    if (!fitBoundsCoords || fitBoundsCoords.length === 0) {
+      // Sin nodos para esa categoria — vista panoramica nacional
+      map.flyTo(NATIONAL_CENTER, NATIONAL_ZOOM, { duration: 0.8 });
+      return;
+    }
+    if (fitBoundsCoords.length === 1) {
+      map.flyTo(fitBoundsCoords[0], 13, { duration: 0.8 });
+      return;
+    }
+    try {
+      const bounds = L.latLngBounds(fitBoundsCoords);
+      map.fitBounds(bounds, { padding: [48, 48], maxZoom: 13, animate: true, duration: 0.8 });
+    } catch (e) {
+      map.flyTo(NATIONAL_CENTER, NATIONAL_ZOOM, { duration: 0.8 });
+    }
+  }, [fitBoundsTrigger, map]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Recalcular tamaño del mapa tras montar
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -331,11 +351,11 @@ function MapController({ selectedNode, selectedAuction, recenterTrigger, userCoo
     return () => clearTimeout(timer);
   }, [map]);
 
-  // Recalcular cuando cambia el estado de expansión (fullscreen toggle)
+  // Recalcular cuando cambia el estado de expansion (fullscreen toggle)
   useEffect(() => {
     const timer = setTimeout(() => {
       map.invalidateSize();
-    }, 320); // ligeramente después de la transición CSS de 300ms
+    }, 320);
     return () => clearTimeout(timer);
   }, [expandTrigger, map]);
 
@@ -476,6 +496,8 @@ export default function MapaP2P(props) {
     if (setSelectedCategoryFilter) setSelectedCategoryFilter(catId);
     setSelectedNode(null);
     setSelectedAuction(null);
+    // Disparar fitBounds al nuevo grupo de nodos tras aplicar el filtro
+    setFitBoundsTrigger((prev) => prev + 1);
   };
 
   const [selectedNode, setSelectedNode] = useState(null);
@@ -483,6 +505,9 @@ export default function MapaP2P(props) {
   const [selectedModalityFilter, setSelectedModalityFilter] = useState('all');
   const [showCompetitorBids, setShowCompetitorBids] = useState(true);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
+
+  // fitBounds trigger: incrementar para hacer zoom al grupo de marcadores filtrado
+  const [fitBoundsTrigger, setFitBoundsTrigger] = useState(0);
 
   // Estado de pantalla completa del mapa (colapsar/expandir controles superpuestos)
   const [isMapExpanded, setIsMapExpanded] = useState(false);
@@ -578,29 +603,59 @@ export default function MapaP2P(props) {
   const [proposalFeeArs, setProposalFeeArs] = useState(3200);
   const [proposalFeeValens, setProposalFeeValens] = useState(1.2);
 
-  // Filtrado Estricto por Categoría + Sub-filtro de Modalidad (Pasajeros / Envíos / Mixto) + Control de Bloqueados
-  const visibleNodes = peers.filter((node) => {
-    const isBlocked = isUserBlocked(node.id);
-    if (isBlocked && !showBlockedUsers) return false;
+  // ── ENUM de Movilidad Normalizado ────────────────────────────────────────────
+  // Convierte variantes del campo 'category' al enum canónico:
+  // 'caminando' | 'bicicleta' | 'motocicleta' | 'automovil' | 'fletes'
+  const normalizeMobility = useCallback((cat) => {
+    if (!cat) return 'caminando';
+    const c = String(cat).toLowerCase().trim();
+    if (c === 'caminando' || c === 'pie' || c === 'peatonal') return 'caminando';
+    if (c === 'bicicleta' || c === 'bici' || c === 'bike') return 'bicicleta';
+    if (c === 'motocicleta' || c === 'moto' || c === 'scooter') return 'motocicleta';
+    if (c === 'automovil' || c === 'auto' || c === 'remis' || c === 'taxi' || c === 'sedan' || c === 'car') return 'automovil';
+    if (c === 'fletes' || c === 'flete' || c === 'carga' || c === 'truck' || c === 'camion') return 'fletes';
+    return c;
+  }, []);
 
-    // Filtro por categoría principal
-    if (selectedCategory !== 'all' && node.category !== selectedCategory) {
-      return false;
-    }
+  // ── FILTRADO REACTIVO REAL CON useMemo ──────────────────────────────────────
+  // Nodos (cadetes) visibles segun categoria + modalidad + bloqueados
+  const visibleNodes = useMemo(() => {
+    return peers.filter((node) => {
+      const isBlocked = isUserBlocked(node.id);
+      if (isBlocked && !showBlockedUsers) return false;
 
-    // Filtro por modalidad de servicio (Transporte de personas vs paquetes)
-    if (selectedModalityFilter !== 'all') {
-      if (selectedModalityFilter === 'pasajeros') {
-        if (node.serviceModality !== 'pasajeros' && node.serviceModality !== 'mixto') return false;
-      } else if (selectedModalityFilter === 'envios') {
-        if (node.serviceModality === 'pasajeros') return false;
-      } else if (selectedModalityFilter === 'mixto') {
-        if (node.serviceModality !== 'mixto') return false;
+      // Filtro por categoria principal (enum normalizado)
+      if (selectedCategory !== 'all') {
+        const nodeCategory = normalizeMobility(node.category);
+        const filterCategory = normalizeMobility(selectedCategory);
+        if (nodeCategory !== filterCategory) return false;
       }
-    }
 
-    return true;
-  });
+      // Filtro por modalidad de servicio (Pasajeros / Envios / Mixto)
+      if (selectedModalityFilter !== 'all') {
+        if (selectedModalityFilter === 'pasajeros') {
+          if (node.serviceModality !== 'pasajeros' && node.serviceModality !== 'mixto') return false;
+        } else if (selectedModalityFilter === 'envios') {
+          if (node.serviceModality === 'pasajeros') return false;
+        } else if (selectedModalityFilter === 'mixto') {
+          if (node.serviceModality !== 'mixto') return false;
+        }
+      }
+
+      return true;
+    });
+  }, [peers, selectedCategory, selectedModalityFilter, showBlockedUsers, isUserBlocked, normalizeMobility]);
+
+  // Coordenadas de los nodos visibles para fitBounds (se recalcula con visibleNodes)
+  const fitBoundsCoords = useMemo(() => {
+    return visibleNodes
+      .map((n) => getNodeCoordinates(n))
+      .filter(([lat, lng]) => lat && lng && !isNaN(lat) && !isNaN(lng));
+  }, [visibleNodes]);
+
+  // Flag de estado vacio para la categoria activa
+  const isCategoryEmpty = !isCadete && visibleNodes.length === 0 && selectedCategory !== 'all';
+
 
   // Helper de filtrado estricto por categoría y tipo de vehículo para Modo Cadete
   const matchesAuctionCategory = (req, targetCategory) => {
@@ -842,6 +897,7 @@ export default function MapaP2P(props) {
                   onClick={() => {
                     setSelectedModalityFilter(mod.id);
                     setSelectedNode(null);
+                    setFitBoundsTrigger((prev) => prev + 1);
                   }}
                   className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold whitespace-nowrap transition-all border ${
                     isModSelected
@@ -1052,6 +1108,18 @@ export default function MapaP2P(props) {
           )}
         </button>
 
+        {/* Banner de estado vacio: categoria sin nodos */}
+        {isCategoryEmpty && (
+          <div className={`absolute top-14 left-1/2 -translate-x-1/2 z-[1001] flex items-center gap-2 px-4 py-2.5 rounded-full border shadow-lg text-[12px] font-bold whitespace-nowrap pointer-events-none ${
+            isDark
+              ? 'bg-[#0B132B]/95 text-amber-400 border-amber-500/40 backdrop-blur-sm'
+              : 'bg-white/95 text-amber-700 border-amber-300 backdrop-blur-sm'
+          }`}>
+            <AlertTriangle size={14} className="flex-shrink-0" />
+            <span>Sin prestadores en esta categoria</span>
+          </div>
+        )}
+
         <MapContainer
           center={NATIONAL_CENTER}
           zoom={NATIONAL_ZOOM}
@@ -1073,13 +1141,15 @@ export default function MapaP2P(props) {
             maxZoom={19}
           />
 
-          {/* Controlador reactivo para centrado, vuelo suave y recalculo de tamaño */}
+          {/* Controlador reactivo: centrado, vuelo suave, fitBounds por categoria y recalculo de tamanio */}
           <MapController 
             selectedNode={selectedNode} 
             selectedAuction={selectedAuction}
             recenterTrigger={recenterTrigger}
             userCoords={userCoords}
             expandTrigger={expandTrigger}
+            fitBoundsTrigger={fitBoundsTrigger}
+            fitBoundsCoords={fitBoundsCoords}
           />
 
           {/* Controles flotantes de Zoom (+/-) y Recentrar suavemente en Mi Ubicación (GPS) */}
