@@ -50,13 +50,21 @@ import {
 } from 'lucide-react';
 import { getPeerSocials, getSocialLink, getModalityInfo, SERVICE_MODALITIES } from '../data/mockData';
 
-// Vista Panorámica Nacional — Argentina (Córdoba + Buenos Aires)
-const NATIONAL_CENTER = [-34.0, -62.0];
-const NATIONAL_ZOOM = 5;
-
-// Centro del Corredor Gran Córdoba — flyTo local
-const METRO_CORRIDOR_CENTER = [-31.5500, -64.3000];
+// Centro predeterminado de Alta Gracia (Escala Barrial/Urbana estándar tipo Google Maps / Uber)
 const ALTA_GRACIA_CENTER = [-31.6529, -64.4283];
+const DEFAULT_NEIGHBORHOOD_ZOOM = 15;
+
+// Fórmula de Haversine — cálculo de distancia geodésica en kilómetros para Geofencing barrial
+const haversineKm = (lat1, lng1, lat2, lng2) => {
+  if (lat1 == null || lng1 == null || lat2 == null || lng2 == null) return 9999;
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
 
 // Monumentos e Hitos Históricos del Gran Córdoba y Valle de Paravachasca
 const LANDMARKS = [
@@ -334,48 +342,30 @@ const createLandmarkIcon = (emoji, title, subtitle, isDark) => {
   });
 };
 
-// Controlador auxiliar para mover el mapa reactivamente con flyTo / fitBounds
-function MapController({ selectedNode, selectedAuction, recenterTrigger, userCoords, expandTrigger, fitBoundsTrigger, fitBoundsCoords }) {
+// Controlador auxiliar para mantener el mapa centrado en escala barrial/urbana sin zoom-out masivo
+function MapController({ selectedNode, selectedAuction, recenterTrigger, userCoords, expandTrigger }) {
   const map = useMap();
 
+  // Centrar suavemente al seleccionar un nodo individual o subasta
   useEffect(() => {
     if (selectedNode) {
       const [lat, lng] = getNodeCoordinates(selectedNode);
-      map.flyTo([lat, lng], 15, { duration: 0.8 });
+      map.flyTo([lat, lng], DEFAULT_NEIGHBORHOOD_ZOOM, { duration: 0.8 });
     } else if (selectedAuction) {
       const coords = selectedAuction.lat && selectedAuction.lng
         ? [selectedAuction.lat, selectedAuction.lng]
         : getNodeCoordinates(selectedAuction);
-      map.flyTo(coords, 15, { duration: 0.8 });
+      map.flyTo(coords, DEFAULT_NEIGHBORHOOD_ZOOM, { duration: 0.8 });
     }
   }, [selectedNode, selectedAuction, map]);
 
+  // Centrar en la ubicación del usuario al pulsar el botón de recentrado (GPS)
   useEffect(() => {
     if (recenterTrigger > 0) {
       const targetCoords = userCoords || ALTA_GRACIA_CENTER;
-      map.flyTo(targetCoords, 15, { duration: 0.8 });
+      map.flyTo(targetCoords, DEFAULT_NEIGHBORHOOD_ZOOM, { duration: 0.8 });
     }
   }, [recenterTrigger, map, userCoords]);
-
-  // fitBounds al conjunto de nodos filtrados cuando cambia la categoria
-  useEffect(() => {
-    if (fitBoundsTrigger === 0) return;
-    if (!fitBoundsCoords || fitBoundsCoords.length === 0) {
-      // Sin nodos para esa categoria — vista panoramica nacional
-      map.flyTo(NATIONAL_CENTER, NATIONAL_ZOOM, { duration: 0.8 });
-      return;
-    }
-    if (fitBoundsCoords.length === 1) {
-      map.flyTo(fitBoundsCoords[0], 13, { duration: 0.8 });
-      return;
-    }
-    try {
-      const bounds = L.latLngBounds(fitBoundsCoords);
-      map.fitBounds(bounds, { padding: [48, 48], maxZoom: 13, animate: true, duration: 0.8 });
-    } catch (e) {
-      map.flyTo(NATIONAL_CENTER, NATIONAL_ZOOM, { duration: 0.8 });
-    }
-  }, [fitBoundsTrigger, map]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Recalcular tamaño del mapa tras montar
   useEffect(() => {
@@ -503,6 +493,7 @@ export default function MapaP2P(props) {
     awardAuctionOffer,
     userGpsCoords,
     hasLiveGps: appHasLiveGps,
+    userProfile,
     user
   } = useApp();
 
@@ -530,8 +521,6 @@ export default function MapaP2P(props) {
     if (setSelectedCategoryFilter) setSelectedCategoryFilter(catId);
     setSelectedNode(null);
     setSelectedAuction(null);
-    // Disparar fitBounds al nuevo grupo de nodos tras aplicar el filtro
-    setFitBoundsTrigger((prev) => prev + 1);
   };
 
   const [selectedNode, setSelectedNode] = useState(null);
@@ -539,9 +528,6 @@ export default function MapaP2P(props) {
   const [selectedModalityFilter, setSelectedModalityFilter] = useState('all');
   const [showCompetitorBids, setShowCompetitorBids] = useState(true);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
-
-  // fitBounds trigger: incrementar para hacer zoom al grupo de marcadores filtrado
-  const [fitBoundsTrigger, setFitBoundsTrigger] = useState(0);
 
   // Estado de pantalla completa del mapa (colapsar/expandir controles superpuestos)
   const [isMapExpanded, setIsMapExpanded] = useState(false);
@@ -637,14 +623,26 @@ export default function MapaP2P(props) {
   const [proposalFeeArs, setProposalFeeArs] = useState(3200);
   const [proposalFeeValens, setProposalFeeValens] = useState(1.2);
 
-  // ── FILTRADO REACTIVO REAL CON useMemo ──────────────────────────────────────
-  // Nodos (cadetes) visibles segun categoria + modalidad + bloqueados
+  // Radio de proximidad de escala barrial/cercana (máximo 3 km por defecto, o configurado en perfil)
+  const proximityRadiusKm = Number(userProfile?.coverageRadius) > 0
+    ? Math.min(Number(userProfile.coverageRadius), 5)
+    : 3.0;
+
+  // ── FILTRADO REACTIVO REAL CON useMemo (GEOFENCING DE PROXIMIDAD <= 3 KM) ──
+  // Nodos (cadetes/prestadores) visibles dentro del radio de proximidad barrial
   const visibleNodes = useMemo(() => {
+    const [uLat, uLng] = userCoords || ALTA_GRACIA_CENTER;
+
     return peers.filter((node) => {
       const isBlocked = isUserBlocked(node.id);
       if (isBlocked && !showBlockedUsers) return false;
 
-      // Filtro por categoria principal (enum normalizado universal)
+      // 1. Geofencing barrial: sólo prestadores dentro del radio de proximidad (<= 3 km)
+      const [nodeLat, nodeLng] = getNodeCoordinates(node);
+      const distKm = haversineKm(uLat, uLng, nodeLat, nodeLng);
+      if (distKm > proximityRadiusKm) return false;
+
+      // 2. Filtro por categoría principal (enum normalizado universal)
       if (selectedCategory !== 'all') {
         const rawNode = node.category || node.vehicle_type || node.vehicle || node.role;
         const nodeCategory = normalizeMobility(rawNode);
@@ -652,7 +650,7 @@ export default function MapaP2P(props) {
         if (nodeCategory !== filterCategory) return false;
       }
 
-      // Filtro por modalidad de servicio (Pasajeros / Envios / Mixto)
+      // 3. Filtro por modalidad de servicio (Pasajeros / Envíos / Mixto)
       if (selectedModalityFilter !== 'all') {
         if (selectedModalityFilter === 'pasajeros') {
           if (node.serviceModality !== 'pasajeros' && node.serviceModality !== 'mixto') return false;
@@ -665,18 +663,10 @@ export default function MapaP2P(props) {
 
       return true;
     });
-  }, [peers, selectedCategory, selectedModalityFilter, showBlockedUsers, isUserBlocked]);
+  }, [peers, userCoords, proximityRadiusKm, selectedCategory, selectedModalityFilter, showBlockedUsers, isUserBlocked]);
 
-  // Coordenadas de los nodos visibles para fitBounds (se recalcula con visibleNodes)
-  const fitBoundsCoords = useMemo(() => {
-    return visibleNodes
-      .map((n) => getNodeCoordinates(n))
-      .filter(([lat, lng]) => lat && lng && !isNaN(lat) && !isNaN(lng));
-  }, [visibleNodes]);
-
-  // Flag de estado vacio para la categoria activa
+  // Flag de estado vacio para la categoria activa dentro del radio
   const isCategoryEmpty = !isCadete && visibleNodes.length === 0 && selectedCategory !== 'all';
-
 
   // Helper de filtrado estricto por categoría y tipo de vehículo para Modo Cadete
   const matchesAuctionCategory = (req, targetCategory) => {
@@ -711,9 +701,21 @@ export default function MapaP2P(props) {
     return false;
   };
 
-  // Filtrado Estricto de Subastas y Pedidos de Clientes (Modo Cadete / Prestador)
-  const openAuctionRequests = (liveRequests || []).filter((r) => r.status === 'open');
-  const visibleAuctions = openAuctionRequests.filter((r) => matchesAuctionCategory(r, selectedCategory));
+  // Filtrado Estricto de Subastas y Pedidos de Clientes (Modo Cadete / Prestador) dentro del radio barrial
+  const visibleAuctions = useMemo(() => {
+    const [uLat, uLng] = userCoords || ALTA_GRACIA_CENTER;
+    const openAuctionRequests = (liveRequests || []).filter((r) => r.status === 'open');
+
+    return openAuctionRequests.filter((req) => {
+      // 1. Geofencing: filtrar pedidos dentro del radio cercano
+      const coords = req.lat && req.lng ? [req.lat, req.lng] : getNodeCoordinates(req);
+      const distKm = haversineKm(uLat, uLng, coords[0], coords[1]);
+      if (distKm > proximityRadiusKm) return false;
+
+      // 2. Coincidencia estricta por categoría
+      return matchesAuctionCategory(req, selectedCategory);
+    });
+  }, [liveRequests, userCoords, proximityRadiusKm, selectedCategory]);
 
   // Subastas del cliente y conteo de ofertas recibidas en tiempo real
   const clientAuctions = liveRequests || [];
@@ -842,8 +844,25 @@ export default function MapaP2P(props) {
     awardAuctionOffer(requestId, offerId);
   };
 
-  // Fuente activa para los contadores superiores según el Modo Activo (Cliente: prestadores / Cadete: demandas y subastas)
-  const activeSource = isCadete ? (liveRequests || []) : (peers || []);
+  // Fuente activa para los contadores superiores según el Modo Activo, filtrada por el radio de proximidad cercano
+  const activeNearbyPeers = useMemo(() => {
+    const [uLat, uLng] = userCoords || ALTA_GRACIA_CENTER;
+    return (peers || []).filter((item) => {
+      const [lat, lng] = getNodeCoordinates(item);
+      return haversineKm(uLat, uLng, lat, lng) <= proximityRadiusKm;
+    });
+  }, [peers, userCoords, proximityRadiusKm]);
+
+  const activeNearbyAuctions = useMemo(() => {
+    const [uLat, uLng] = userCoords || ALTA_GRACIA_CENTER;
+    return (liveRequests || []).filter((item) => {
+      if (item.status !== 'open') return false;
+      const coords = item.lat && item.lng ? [item.lat, item.lng] : getNodeCoordinates(item);
+      return haversineKm(uLat, uLng, coords[0], coords[1]) <= proximityRadiusKm;
+    });
+  }, [liveRequests, userCoords, proximityRadiusKm]);
+
+  const activeSource = isCadete ? activeNearbyAuctions : activeNearbyPeers;
   const countByCategory = (catId) => activeSource.filter((item) => {
     if (isCadete) {
       return matchesAuctionCategory(item, catId);
@@ -923,7 +942,6 @@ export default function MapaP2P(props) {
                   onClick={() => {
                     setSelectedModalityFilter(mod.id);
                     setSelectedNode(null);
-                    setFitBoundsTrigger((prev) => prev + 1);
                   }}
                   className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold whitespace-nowrap transition-all border ${
                     isModSelected
@@ -1104,9 +1122,9 @@ export default function MapaP2P(props) {
         )}
 
         <MapContainer
-          center={NATIONAL_CENTER}
-          zoom={NATIONAL_ZOOM}
-          minZoom={4}
+          center={userCoords || ALTA_GRACIA_CENTER}
+          zoom={DEFAULT_NEIGHBORHOOD_ZOOM}
+          minZoom={12}
           maxZoom={18}
           zoomControl={false}
           scrollWheelZoom={true}
@@ -1124,15 +1142,13 @@ export default function MapaP2P(props) {
             maxZoom={19}
           />
 
-          {/* Controlador reactivo: centrado, vuelo suave, fitBounds por categoria y recalculo de tamanio */}
+          {/* Controlador reactivo: escala barrial fija, centrado en el usuario y recalculo de tamaño */}
           <MapController 
             selectedNode={selectedNode} 
             selectedAuction={selectedAuction}
             recenterTrigger={recenterTrigger}
             userCoords={userCoords}
             expandTrigger={expandTrigger}
-            fitBoundsTrigger={fitBoundsTrigger}
-            fitBoundsCoords={fitBoundsCoords}
           />
 
           {/* Controles flotantes de Zoom (+/-) y Recentrar suavemente en Mi Ubicación (GPS) */}
@@ -1143,8 +1159,8 @@ export default function MapaP2P(props) {
             isDark={isDark} 
           />
 
-          {/* Hitos Emblemáticos de Alta Gracia (Reloj Público, Tajamar, Sierras Hotel, etc.) */}
-          {LANDMARKS.map((lm) => (
+          {/* Hitos Emblemáticos dentro del radio barrial cercano */}
+          {LANDMARKS.filter((lm) => haversineKm((userCoords || ALTA_GRACIA_CENTER)[0], (userCoords || ALTA_GRACIA_CENTER)[1], lm.pos[0], lm.pos[1]) <= proximityRadiusKm).map((lm) => (
             <Marker
               key={lm.id}
               position={lm.pos}
