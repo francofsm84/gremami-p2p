@@ -6,6 +6,7 @@ import {
   ShoppingCart,
   Coins,
   ArrowRight,
+  ChevronLeft,
   PlusCircle,
   ShieldCheck,
   Sparkles,
@@ -36,7 +37,9 @@ export default function DexScreen() {
     role,
     userName,
     startChatWithPeer,
-    peers
+    peers,
+    setActiveTab,
+    goBack
   } = useApp();
 
   const isDark = theme === 'dark';
@@ -103,6 +106,24 @@ export default function DexScreen() {
     <div className={`w-full min-h-[calc(100vh-130px)] p-4 pb-10 space-y-4 max-w-lg mx-auto animate-fadeIn transition-colors duration-200 ${
       isDark ? 'bg-[#0A1128] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'
     }`}>
+      {/* Mini header de navegación con botón de regreso */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => goBack ? goBack() : setActiveTab('home')}
+          className={`flex items-center space-x-1.5 text-xs transition-colors ${
+            isDark ? 'text-[#8C9BB4] hover:text-white' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <ChevronLeft size={16} />
+          <span>Volver</span>
+        </button>
+        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-lg border ${
+          isDark ? 'text-[#F0B90B] bg-[#121B2D] border-[#1F2D48]' : 'text-amber-700 bg-amber-50 border-amber-200 font-bold'
+        }`}>
+          Mercado DEX
+        </span>
+      </div>
+
       {/* 1. Header Banner */}
       <div className={`relative rounded-2xl border p-4 shadow-xl overflow-hidden transition-colors ${
         isDark
@@ -384,8 +405,18 @@ export default function DexScreen() {
             <button
               onClick={() => setShowCreateModal(false)}
               className="absolute top-3 right-3 text-slate-400 hover:text-white"
+              title="Cerrar"
             >
               <X size={18} />
+            </button>
+            <button
+              onClick={() => setShowCreateModal(false)}
+              className={`flex items-center gap-1.5 text-xs font-semibold mb-3 transition-colors ${
+                isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <ChevronLeft size={15} />
+              <span>Volver</span>
             </button>
 
             <div className="flex items-center gap-2 text-[#F7931A] mb-2">
@@ -559,9 +590,12 @@ export default function DexScreen() {
               <button
                 type="button"
                 onClick={() => setShowDonateModal(null)}
-                className="flex-1 min-h-[44px] py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
+                className={`flex-1 min-h-[44px] py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 ${
+                  isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                }`}
               >
-                Cancelar
+                <ChevronLeft size={15} />
+                Volver
               </button>
               <button
                 type="button"

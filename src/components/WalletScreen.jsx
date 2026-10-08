@@ -179,6 +179,24 @@ export default function WalletScreen() {
     <div className={`w-full min-h-[calc(100vh-135px)] p-4 pb-8 space-y-4 max-w-lg mx-auto animate-fadeIn transition-colors duration-200 ${
       isDark ? 'bg-[#0A1128] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'
     }`}>
+      {/* Mini header de navegación con botón de regreso */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => setActiveTab('home')}
+          className={`flex items-center space-x-1.5 text-xs transition-colors ${
+            isDark ? 'text-[#8C9BB4] hover:text-white' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <ChevronDown className="w-4 h-4 rotate-90" />
+          <span>Volver al Inicio</span>
+        </button>
+        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-lg border ${
+          isDark ? 'text-[#F0B90B] bg-[#121B2D] border-[#1F2D48]' : 'text-amber-700 bg-amber-50 border-amber-200 font-bold'
+        }`}>
+          Billetera ValensCoin
+        </span>
+      </div>
+
       {/* 1. Tarjeta Destacada de Recaudación en Pesos ($ ARS) (Multimoneda) */}
       <div className={`relative rounded-2xl border p-5 shadow-xl overflow-hidden transition-colors ${
         isDark
@@ -673,9 +691,21 @@ export default function WalletScreen() {
             <button
               onClick={() => setShowQrReceiveModal(false)}
               className="absolute top-3 right-3 text-[#8C9BB4] hover:text-white p-1 rounded-lg transition-colors"
+              title="Cerrar"
             >
               <X className="w-4 h-4" />
             </button>
+            <div className="flex items-center justify-start mb-3">
+              <button
+                onClick={() => setShowQrReceiveModal(false)}
+                className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${
+                  isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <ChevronDown className="w-4 h-4 rotate-90" />
+                <span>Volver</span>
+              </button>
+            </div>
 
             <h3 className="text-sm font-bold mb-1">
               {receiveTab === 'fiat' ? 'Cobros en Pesos ($ ARS)' : 'Recibir ValensCoin (VAL)'}

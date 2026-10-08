@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { authService, profileService, isSupabaseConfigured } from '../lib/supabaseClient';
-import { X, Mail, Lock, User, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, Sparkles, MapPin, Locate, Compass } from 'lucide-react';
+import { X, ArrowLeft, Mail, Lock, User, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, Sparkles, MapPin, Locate, Compass } from 'lucide-react';
 
 export default function AuthModal({ isOpen, onClose }) {
   const { theme, showToast, setUserName, setUserProfile, setBalance, currentUser } = useApp();
@@ -303,6 +303,27 @@ export default function AuthModal({ isOpen, onClose }) {
         }`}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Botón Volver / Regresar (esquina superior izquierda) */}
+        <button
+          onClick={() => {
+            if (mode === 'register') {
+              handleSwitchMode('login');
+            } else {
+              onClose();
+            }
+          }}
+          disabled={isWorking}
+          className={`absolute top-4 left-4 p-2 rounded-xl flex items-center gap-1.5 transition-all text-xs font-semibold ${
+            isDark
+              ? 'text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60'
+              : 'text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200'
+          }`}
+          title={mode === 'register' ? 'Volver a Iniciar Sesión' : 'Volver a la aplicación'}
+        >
+          <ArrowLeft size={16} />
+          <span>Volver</span>
+        </button>
+
         {/* Botón Cerrar */}
         <button
           onClick={onClose}

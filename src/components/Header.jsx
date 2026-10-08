@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import {
   Menu,
   X,
+  ArrowLeft,
   LayoutGrid,
   MapPin,
   MessageSquare,
@@ -32,6 +33,7 @@ export default function Header() {
     requestFaucet,
     activeTab,
     setActiveTab,
+    goBack,
     userName,
     messages,
     isOnline,
@@ -108,8 +110,23 @@ export default function Header() {
       <div className={`px-3.5 py-2.5 flex items-center justify-between border-b ${
         isDark ? 'border-[#1F2D48]' : 'border-slate-200'
       }`}>
-        {/* Brand & Slogan */}
-        <div className="flex items-center space-x-2.5">
+        {/* Brand & Slogan (con botón de regreso dinámico en vistas internas) */}
+        <div className="flex items-center space-x-2 min-w-0">
+          {activeTab !== 'home' && (
+            <button
+              onClick={() => goBack()}
+              className={`p-1.5 rounded-xl border flex items-center justify-center transition-all active:scale-95 flex-shrink-0 ${
+                isDark
+                  ? 'bg-[#18243C] text-slate-200 border-[#2A3B5C] hover:bg-[#233555] hover:text-white'
+                  : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 hover:text-slate-900 shadow-xs'
+              }`}
+              title="Volver a la pantalla anterior"
+              aria-label="Volver"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+          )}
+
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#E02424] via-[#F7931A] to-[#F0B90B] p-0.5 shadow-glow-orange flex-shrink-0">
             <img
               src="/icon-192.svg"
@@ -118,13 +135,13 @@ export default function Header() {
             />
           </div>
 
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center space-x-1.5">
-              <h1 className="text-base font-black tracking-tight leading-none">
+              <h1 className="text-base font-black tracking-tight leading-none truncate">
                 Gremami <span className="text-[#F7931A]">P2P</span>
               </h1>
             </div>
-            <p className={`text-[10px] font-medium tracking-wide mt-0.5 ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>
+            <p className={`text-[10px] font-medium tracking-wide mt-0.5 truncate ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>
               Logística Descentralizada • Gran Córdoba & Valle de Paravachasca
             </p>
           </div>

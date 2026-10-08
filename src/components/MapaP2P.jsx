@@ -16,6 +16,7 @@ import {
   ZoomOut, 
   Locate, 
   X, 
+  ArrowLeft,
   ShieldCheck, 
   ArrowRight, 
   Wallet, 
@@ -401,6 +402,7 @@ export default function MapaP2P(props) {
     selectedCategoryFilter,
     setSelectedCategoryFilter,
     setActiveTab,
+    goBack,
     startChatWithPeer,
     role,
     peers,
@@ -758,6 +760,18 @@ export default function MapaP2P(props) {
         isDark ? 'bg-[#0B132B] border-[#1F2D48]' : 'bg-white border-slate-200'
       }`}>
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+          <button
+            onClick={() => (goBack ? goBack() : setActiveTab('home'))}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border flex-shrink-0 ${
+              isDark
+                ? 'bg-[#18243C] text-slate-200 border-[#2A3B5C] hover:bg-[#233555] hover:text-white'
+                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 hover:text-slate-900 shadow-xs'
+            }`}
+            title="Volver a la pantalla anterior"
+          >
+            <ArrowLeft size={14} />
+            <span>Volver</span>
+          </button>
           {categoriesList.map((cat) => {
             const Icon = cat.icon;
             const isSelected = selectedCategory === cat.id;
@@ -1090,9 +1104,22 @@ export default function MapaP2P(props) {
             ? 'bg-[#0B132B] border-slate-800 text-white'
             : 'bg-white border-slate-300 text-slate-900 shadow-2xl'
         }`}>
-          {/* Top Bar with Reputation Badge */}
-          <div className="flex items-center justify-between mb-2.5">
-            <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Top Bar with Return Button & Reputation Badge */}
+          <div className="flex items-center justify-between mb-2.5 gap-2">
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
+              <button
+                onClick={() => setSelectedNode(null)}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition-all border flex-shrink-0 ${
+                  isDark
+                    ? 'bg-slate-800/90 text-slate-300 hover:text-white border-slate-700 hover:bg-slate-700'
+                    : 'bg-slate-100 text-slate-700 hover:text-slate-900 border-slate-200 hover:bg-slate-200'
+                }`}
+                title="Volver al mapa"
+              >
+                <ArrowLeft size={14} />
+                <span>Volver</span>
+              </button>
+
               {getPeerReputation(selectedNode.id) === 'blocked' ? (
                 <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/40 flex items-center gap-1">
                   🔴 Usuario Bloqueado por ti
@@ -1103,16 +1130,17 @@ export default function MapaP2P(props) {
                 </span>
               ) : (
                 <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center gap-1">
-                  🟢 Reputación Verificada: {selectedNode.recommendations || 24} recomendaciones
+                  🟢 Reputación: {selectedNode.recommendations || 24}
                 </span>
               )}
             </div>
 
             <button
               onClick={() => setSelectedNode(null)}
-              className={`p-1 rounded-full ${
+              className={`p-1.5 rounded-full flex-shrink-0 ${
                 isDark ? 'text-slate-400 hover:text-white bg-slate-800/60' : 'text-slate-600 hover:text-slate-900 bg-slate-100'
               }`}
+              title="Cerrar ficha"
             >
               <X size={16} />
             </button>
@@ -1563,11 +1591,24 @@ export default function MapaP2P(props) {
               ? 'bg-[#0B132B] border-slate-800 text-white'
               : 'bg-white border-slate-300 text-slate-900 shadow-2xl'
           }`}>
-            {/* Header */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2 flex-wrap">
+            {/* Header with Return Button */}
+            <div className="flex items-center justify-between mb-3 gap-2">
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                <button
+                  onClick={() => setSelectedAuction(null)}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition-all border flex-shrink-0 ${
+                    isDark
+                      ? 'bg-slate-800/90 text-slate-300 hover:text-white border-slate-700 hover:bg-slate-700'
+                      : 'bg-slate-100 text-slate-700 hover:text-slate-900 border-slate-200 hover:bg-slate-200'
+                  }`}
+                  title="Volver al mapa"
+                >
+                  <ArrowLeft size={14} />
+                  <span>Volver</span>
+                </button>
+
                 <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-amber-500/20 text-[#F7931A] border border-amber-500/40 flex items-center gap-1">
-                  📦 Solicitud en Subasta Abierta P2P
+                  📦 Solicitud P2P
                 </span>
                 <span className="text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30">
                   {activeAuction.categoryLabel || 'Transporte'}
@@ -1579,9 +1620,10 @@ export default function MapaP2P(props) {
               </div>
               <button
                 onClick={() => setSelectedAuction(null)}
-                className={`p-1 rounded-full ${
+                className={`p-1.5 rounded-full flex-shrink-0 ${
                   isDark ? 'text-slate-400 hover:text-white bg-slate-800/60' : 'text-slate-600 hover:text-slate-900 bg-slate-100'
                 }`}
+                title="Cerrar solicitud"
               >
                 <X size={16} />
               </button>
@@ -1778,8 +1820,19 @@ export default function MapaP2P(props) {
             <button
               onClick={() => setShowReportModal(false)}
               className="absolute top-3 right-3 text-slate-400 hover:text-white"
+              title="Cerrar"
             >
               <X size={18} />
+            </button>
+            <button
+              onClick={() => setShowReportModal(false)}
+              className={`flex items-center gap-1.5 text-xs font-semibold mb-3 transition-colors ${
+                isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Volver"
+            >
+              <ArrowLeft size={15} />
+              <span>Volver</span>
             </button>
 
             <div className="flex items-center gap-2 text-amber-400 mb-2">
@@ -1850,8 +1903,19 @@ export default function MapaP2P(props) {
             <button
               onClick={() => setShowRequestModal(false)}
               className="absolute top-3 right-3 text-slate-400 hover:text-white"
+              title="Cerrar"
             >
               <X size={18} />
+            </button>
+            <button
+              onClick={() => setShowRequestModal(false)}
+              className={`flex items-center gap-1.5 text-xs font-semibold mb-3 transition-colors ${
+                isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Volver"
+            >
+              <ArrowLeft size={15} />
+              <span>Volver</span>
             </button>
 
             <div className="flex items-center gap-2 text-[#F7931A] mb-2">
@@ -1960,8 +2024,19 @@ export default function MapaP2P(props) {
             <button
               onClick={() => setShowProposalModal(false)}
               className="absolute top-3 right-3 text-slate-400 hover:text-white"
+              title="Cerrar"
             >
               <X size={18} />
+            </button>
+            <button
+              onClick={() => setShowProposalModal(false)}
+              className={`flex items-center gap-1.5 text-xs font-semibold mb-3 transition-colors ${
+                isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Volver"
+            >
+              <ArrowLeft size={15} />
+              <span>Volver</span>
             </button>
 
             <div className="flex items-center gap-2 text-emerald-400 mb-2">
@@ -2079,8 +2154,19 @@ export default function MapaP2P(props) {
             <button
               onClick={() => setShowQuoteSubmitModal(false)}
               className="absolute top-3 right-3 text-slate-400 hover:text-white"
+              title="Cerrar"
             >
               <X size={18} />
+            </button>
+            <button
+              onClick={() => setShowQuoteSubmitModal(false)}
+              className={`flex items-center gap-1.5 text-xs font-semibold mb-3 transition-colors ${
+                isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Volver"
+            >
+              <ArrowLeft size={15} />
+              <span>Volver</span>
             </button>
 
             {(() => {
@@ -2184,8 +2270,19 @@ export default function MapaP2P(props) {
             <button
               onClick={() => setShowNewAuctionModal(false)}
               className="absolute top-3 right-3 text-slate-400 hover:text-white"
+              title="Cerrar"
             >
               <X size={18} />
+            </button>
+            <button
+              onClick={() => setShowNewAuctionModal(false)}
+              className={`flex items-center gap-1.5 text-xs font-semibold mb-3 transition-colors ${
+                isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Volver"
+            >
+              <ArrowLeft size={15} />
+              <span>Volver</span>
             </button>
 
             <div className="flex items-center gap-2 text-[#F7931A] mb-1">
@@ -2315,8 +2412,19 @@ export default function MapaP2P(props) {
             <button
               onClick={() => setShowAuctionQuotesModal(false)}
               className="absolute top-3 right-3 text-slate-400 hover:text-white"
+              title="Cerrar"
             >
               <X size={18} />
+            </button>
+            <button
+              onClick={() => setShowAuctionQuotesModal(false)}
+              className={`flex items-center gap-1.5 text-xs font-semibold mb-3 transition-colors ${
+                isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Volver"
+            >
+              <ArrowLeft size={15} />
+              <span>Volver</span>
             </button>
 
             <div className="flex items-center gap-2 text-[#F7931A] mb-1">

@@ -39,8 +39,35 @@ export function AppProvider({ children }) {
   // Role: 'cliente' or 'cadete'
   const [role, setRole] = useState('cliente');
 
-  // Navigation tab: 'home', 'map', 'chat', 'wallet', 'profile'
-  const [activeTab, setActiveTab] = useState('home');
+  // Navigation tab & history: 'home', 'map', 'chat', 'wallet', 'dex', 'profile'
+  const [activeTab, setActiveTabState] = useState('home');
+  const [navigationHistory, setNavigationHistory] = useState(['home']);
+
+  const setActiveTab = (tabOrUpdater) => {
+    setActiveTabState((prevTab) => {
+      const nextTab = typeof tabOrUpdater === 'function' ? tabOrUpdater(prevTab) : tabOrUpdater;
+      if (nextTab && nextTab !== prevTab) {
+        setNavigationHistory((prevHist) => [...prevHist, nextTab]);
+      }
+      return nextTab;
+    });
+  };
+
+  const goBack = () => {
+    setNavigationHistory((prevHist) => {
+      if (prevHist.length > 1) {
+        const nextHist = prevHist.slice(0, -1);
+        const targetTab = nextHist[nextHist.length - 1];
+        setActiveTabState(targetTab);
+        return nextHist;
+      } else {
+        setActiveTabState('home');
+        return ['home'];
+      }
+    });
+  };
+
+  const canGoBack = activeTab !== 'home' || navigationHistory.length > 1;
 
   // Category filter for the map: 'all', 'caminando', 'bicicleta', 'automovil', 'comercio'
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
@@ -1547,6 +1574,9 @@ export function AppProvider({ children }) {
         setRole: handleSetRole,
         activeTab,
         setActiveTab,
+        goBack,
+        canGoBack,
+        navigationHistory,
         selectedCategoryFilter,
         setSelectedCategoryFilter,
         selectCategoryAndGoToMap,

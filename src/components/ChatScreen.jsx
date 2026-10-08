@@ -166,6 +166,17 @@ export default function ChatScreen() {
       }`}>
         <p className="text-sm font-bold text-slate-400">No hay contactos disponibles en este momento.</p>
         <p className="text-xs text-slate-500 mt-1">Explora el Mapa P2P para encontrar prestadores activos en Alta Gracia.</p>
+        <button
+          onClick={() => setActiveTab('map')}
+          className={`mt-4 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+            isDark
+              ? 'bg-[#18243C] text-slate-200 border-[#2A3B5C] hover:bg-[#233555]'
+              : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+          }`}
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Ir al Mapa P2P
+        </button>
       </div>
     );
   }
@@ -969,9 +980,12 @@ export default function ChatScreen() {
               <button
                 type="button"
                 onClick={() => setShowBlockModal(false)}
-                className="flex-1 min-h-[44px] py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
+                className={`flex-1 min-h-[44px] py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 ${
+                  isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                }`}
               >
-                Cancelar
+                <ChevronLeft className="w-4 h-4" />
+                Volver
               </button>
               <button
                 type="button"
@@ -994,8 +1008,18 @@ export default function ChatScreen() {
             <button
               onClick={() => setShowCalculatorModal(false)}
               className="absolute top-3 right-3 text-slate-400 hover:text-white"
+              title="Cerrar"
             >
               <X className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setShowCalculatorModal(false)}
+              className={`flex items-center gap-1.5 text-xs font-semibold mb-3 transition-colors ${
+                isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Volver</span>
             </button>
 
             <div className="flex items-center space-x-2 text-[#F7931A] mb-3">
@@ -1086,8 +1110,18 @@ export default function ChatScreen() {
             <button
               onClick={() => setShowCashModal(false)}
               className="absolute top-3 right-3 text-slate-400 hover:text-white"
+              title="Cerrar"
             >
               <X className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setShowCashModal(false)}
+              className={`flex items-center gap-1.5 text-xs font-semibold mb-3 transition-colors ${
+                isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Volver</span>
             </button>
 
             <div className="flex items-center space-x-2.5 text-emerald-400 mb-3">
@@ -1165,8 +1199,18 @@ export default function ChatScreen() {
             <button
               onClick={() => setShowQrTipModal(false)}
               className="absolute top-3 right-3 text-slate-400 hover:text-white"
+              title="Cerrar"
             >
               <X className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setShowQrTipModal(false)}
+              className={`flex items-center gap-1.5 text-xs font-semibold mb-3 transition-colors ${
+                isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Volver</span>
             </button>
 
             <div className="flex items-center space-x-2.5 text-[#F7931A] mb-3">
@@ -1259,8 +1303,18 @@ export default function ChatScreen() {
             <button
               onClick={() => setShowReportChatModal(false)}
               className="absolute top-3 right-3 text-slate-400 hover:text-white"
+              title="Cerrar"
             >
               <X size={18} />
+            </button>
+            <button
+              onClick={() => setShowReportChatModal(false)}
+              className={`flex items-center gap-1.5 text-xs font-semibold mb-3 transition-colors ${
+                isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Volver</span>
             </button>
 
             <div className="flex items-center gap-2 text-amber-400 mb-2">
