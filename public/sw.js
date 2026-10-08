@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gremami-p2p-v2';
+const CACHE_NAME = 'gremami-p2p-v4';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/icon-192.svg',

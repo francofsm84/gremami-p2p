@@ -163,7 +163,7 @@ const normalizeCategoryForIcon = (cat) => {
 
 // Selecciona el SVG correcto segun categoria + modalidad (misma logica que los emojis originales)
 const getVehicleSVG = (node) => {
-  const catKey = normalizeCategoryForIcon(node.category);
+  const catKey = normalizeCategoryForIcon(node.category || node.vehicle_type || node.vehicle);
   const modality = node.serviceModality;
   if (catKey === 'caminando') return VEHICLE_SVG.caminando;
   if (catKey === 'bicicleta') return VEHICLE_SVG.bicicleta;
@@ -349,28 +349,29 @@ const getPeerOperationalSpecs = (node) => {
   let vehicle = node.vehicleType || node.vehicle;
   let capacity = node.loadCapacity;
   let coverage = node.coverageArea;
+  const catKey = normalizeCategoryForIcon(node.category || node.vehicle_type || node.vehicle);
 
-  if (node.category === 'caminando') {
+  if (catKey === 'caminando') {
     vehicle = vehicle || 'Cadete a Pie / Mochila Urbana';
     capacity = capacity || 'Mochila Urbana 🎒 - Cargas ligeras hasta 5 kg';
     coverage = coverage || 'Av. Belgrano, Sarmiento, Plaza Solares, Casco Céntrico';
-  } else if (node.category === 'bicicleta') {
+  } else if (catKey === 'bicicleta') {
     vehicle = vehicle || 'Bicicleta de Ruta / Montaña con Parrilla';
     capacity = capacity || 'Mochila Térmica 🎒 - Cargas hasta 12 kg';
     coverage = coverage || 'Ciclovías, Bv. Pellegrini, El Tajamar, Parque del Sierras';
-  } else if (node.category === 'motocicleta') {
+  } else if (catKey === 'motocicleta') {
     vehicle = vehicle || 'Motocicleta 110cc / 150cc con Baúl Sellado';
     capacity = capacity || 'Caja Térmica Sellada 📦 - Envíos hasta 25 kg';
     coverage = coverage || 'Todo Alta Gracia, Rotonda El Crucero, Sabattini, San Martín';
-  } else if (node.category === 'automovil') {
+  } else if (catKey === 'automovil') {
     vehicle = vehicle || 'Automóvil Sedán / 5 Puertas';
     capacity = capacity || 'Baúl Amplio 🚗 - Cargas hasta 150 kg';
     coverage = coverage || 'Alta Gracia Urbano, Valle Buena Esperanza, La Paisanita';
-  } else if (node.category === 'fletes') {
+  } else if (catKey === 'fletes') {
     vehicle = vehicle || 'Camioneta Utilitario / Pick-up / Furgón';
     capacity = capacity || 'Camioneta Utilitario 🚚 - Fletes pesados / 1.500 kg / 8 m³';
     coverage = coverage || 'Alta Gracia completa, Ruta 5, Córdoba Capital, Falda del Carmen';
-  } else if (node.category === 'comercio') {
+  } else if (catKey === 'negocios') {
     vehicle = vehicle || 'Local Comercial con Mostrador Fijo';
     capacity = capacity || 'Stock Inmediato en Mostrador 🏪 - Envíos o Retiro P2P';
     coverage = coverage || 'Eje Comercial Belgrano, Sarmiento, El Tajamar';
@@ -731,7 +732,7 @@ export default function MapaP2P(props) {
 
       // Filtro por categoria principal (enum normalizado)
       if (selectedCategory !== 'all') {
-        const nodeCategory = normalizeMobility(node.category);
+        const nodeCategory = normalizeMobility(node.category || node.vehicle_type || node.vehicle);
         const filterCategory = normalizeMobility(selectedCategory);
         if (nodeCategory !== filterCategory) return false;
       }
@@ -933,7 +934,7 @@ export default function MapaP2P(props) {
       return matchesAuctionCategory(item, catId);
     }
     // Usar normalizeMobility para comparacion robusta (cubre 'comercio' → 'negocios', 'moto' → 'motocicleta', etc.)
-    return normalizeMobility(item.category) === normalizeMobility(catId);
+    return normalizeMobility(item.category || item.vehicle_type || item.vehicle) === normalizeMobility(catId);
   }).length;
 
   // 6 Categorias Principales + Negocios con contadores dinamicos

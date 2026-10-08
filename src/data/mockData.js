@@ -420,7 +420,8 @@ const DEMAND_CATEGORIES = [
   { id: 'bicicleta', label: 'Servicios en Bicicleta', baseFee: 2400, baseVal: 1.0, descs: ['Delivery gastronómico en mochila térmica sellada', 'Retiro de repuestos livianos en bicicletería', 'Envío de paquete sellado de tienda online', 'Trámite rápido de estudio contable'] },
   { id: 'motocicleta', label: 'Servicios en Motocicleta', baseFee: 3200, baseVal: 1.3, descs: ['Moto-envío express de repuestos mecánicos', 'Traslado de viandas calientes con urgencia', 'Retiro de encomienda en terminal y entrega rápida', 'Moto-taxi: traslado de pasajero con casco'] },
   { id: 'automovil', label: 'Servicios de Automóviles', baseFee: 5500, baseVal: 2.2, descs: ['Viaje interurbano de pasajeros con equipaje', 'Envío de mercadería frágil en baúl espacioso', 'Traslado de compras de supermercado mayorista', 'Viaje directo Alta Gracia - Córdoba Capital'] },
-  { id: 'fletes', label: 'Fletes y Cargas Pesadas', baseFee: 19000, baseVal: 7.5, descs: ['Flete utilitario para mudanza de muebles y cajas', 'Retiro de 25 bolsas de cemento y perfiles de hierro', 'Transporte de electrodomésticos y pallets', 'Carga pesada de corralón a obra en construcción'] }
+  { id: 'fletes', label: 'Fletes y Cargas Pesadas', baseFee: 19000, baseVal: 7.5, descs: ['Flete utilitario para mudanza de muebles y cajas', 'Retiro de 25 bolsas de cemento y perfiles de hierro', 'Transporte de electrodomésticos y pallets', 'Carga pesada de corralón a obra en construcción'] },
+  { id: 'negocios', label: 'Comercios y Negocios', baseFee: 3500, baseVal: 1.5, descs: ['Retiro de mercadería en local comercial', 'Envío de pedidos de tienda online', 'Retiro de productos en mostrador para entrega express', 'Abastecimiento de insumos para comercio minorista'] }
 ];
 
 // Generador de 250 Demandas Simuladas en Modo Cadete (50 por categoría)
@@ -514,7 +515,8 @@ const PEER_CATEGORY_CONFIG = [
   { id: 'bicicleta', prefix: 'cadete-bike', role: 'Bici-Cadete', icon: '🚲' },
   { id: 'motocicleta', prefix: 'cadete-moto', role: 'Moto-Cadete', icon: '🏍️' },
   { id: 'automovil', prefix: 'cadete-auto', role: 'Auto Remís & Envíos', icon: '🚗' },
-  { id: 'fletes', prefix: 'flete-heavy', role: 'Flete Pesado & Carga', icon: '🚚' }
+  { id: 'fletes', prefix: 'flete-heavy', role: 'Flete Pesado & Carga', icon: '🚚' },
+  { id: 'negocios', prefix: 'comercio-store', role: 'Comercio / Tienda P2P', icon: '🏪' }
 ];
 
 const buildInitialPeers = () => {
@@ -566,6 +568,9 @@ const buildInitialPeers = () => {
       } else if (cat.id === 'fletes') {
         vehicle = 'Ford Ranger / F-100 Carrozada 🚚';
         loadCapacity = 'Caja Abierta / Cerrada 🚚 - Cargas hasta 1.500 kg';
+      } else if (cat.id === 'negocios') {
+        vehicle = 'Local Comercial / Mostrador Fijo 🏪';
+        loadCapacity = 'Stock Permanente en Mostrador 🏪 - Retiro Inmediato';
       }
 
       const jitterLat = ((i % 7) - 3) * 0.0008;
@@ -596,8 +601,8 @@ const buildInitialPeers = () => {
         avatar,
         address: `valens1q${cat.prefix}${i + 1}p2pnetwork`,
         walletStatus: '🟢 Billetera Verificada',
-        baseFee: cat.id === 'fletes' ? '$8.500 ARS' : cat.id === 'automovil' ? '$3.800 ARS' : cat.id === 'motocicleta' ? '$2.400 ARS' : cat.id === 'bicicleta' ? '$1.800 ARS' : '$1.400 ARS',
-        cryptoFee: cat.id === 'fletes' ? '3.5 VALENS' : cat.id === 'automovil' ? '1.5 VALENS' : cat.id === 'motocicleta' ? '1.0 VALENS' : '0.6 VALENS',
+        baseFee: cat.id === 'fletes' ? '$8.500 ARS' : cat.id === 'negocios' ? '$3.200 ARS' : cat.id === 'automovil' ? '$3.800 ARS' : cat.id === 'motocicleta' ? '$2.400 ARS' : cat.id === 'bicicleta' ? '$1.800 ARS' : '$1.400 ARS',
+        cryptoFee: cat.id === 'fletes' ? '3.5 VALENS' : cat.id === 'negocios' ? '1.2 VALENS' : cat.id === 'automovil' ? '1.5 VALENS' : cat.id === 'motocicleta' ? '1.0 VALENS' : '0.6 VALENS',
         description: `Logística P2P soberana en ${zone.locality} y corredor metropolitano. Entrega directa sin comisiones abusivas.`,
         locationLabel,
         locality: zone.locality,
