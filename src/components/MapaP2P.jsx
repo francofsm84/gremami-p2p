@@ -118,182 +118,75 @@ export const normalizeMobility = (raw) => {
 
 const normalizeCategoryForIcon = normalizeMobility;
 
-// SVG paths por categoria — graficos vectoriales precisos con RELLENO (fill) ilustrativo segun especificacion
-const VEHICLE_SVG = {
-  // 1. Caminando: SVG de peaton erguido con relleno VERDE (#10B981)
-  caminando: {
-    color: '#10B981',
-    borderColor: '#10B981',
-    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="4" r="2.2" fill="#10B981"/>
-      <path d="M13.8 8.2c-.4-.5-1.1-.8-1.8-.8s-1.4.3-1.8.8l-2.7 3.3c-.3.4-.2 1 .2 1.3.4.3 1 .2 1.3-.2l1.7-2.1v4.7l-2.4 4.8c-.3.5 0 1.1.5 1.3.5.3 1.1 0 1.3-.5l2.4-4.8 2.4 4.8c.2.4.7.7 1.2.7.2 0 .4 0 .6-.1.5-.3.7-.9.5-1.4l-2.4-4.8V10.6l1.7 2.1c.2.3.6.4.9.4.1 0 .3 0 .4-.1.4-.3.5-.9.2-1.3l-2.6-3.5z" fill="#10B981"/>
-    </svg>`
-  },
-
-  // 2. Bicicleta: SVG ilustrativo de bicicleta con cuadro y ruedas en color NARANJA (#F97316)
-  bicicleta: {
-    color: '#F97316',
-    borderColor: '#F97316',
-    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <!-- Ruedas naranja con llanta gruesa -->
-      <circle cx="5.5" cy="16.5" r="3.5" stroke="#F97316" stroke-width="2" fill="#FFEDD5"/>
-      <circle cx="5.5" cy="16.5" r="1.2" fill="#EA580C"/>
-      <circle cx="18.5" cy="16.5" r="3.5" stroke="#F97316" stroke-width="2" fill="#FFEDD5"/>
-      <circle cx="18.5" cy="16.5" r="1.2" fill="#EA580C"/>
-      <!-- Cuadro y manubrio naranja -->
-      <path d="M5.5 16.5l4-6.5h4.5l4.5 6.5" stroke="#F97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M9.5 10l2.5 6.5" stroke="#EA580C" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M14 10l-2 6.5" stroke="#EA580C" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M12.5 7.5h2.8l1.7 2.5" stroke="#C2410C" stroke-width="2" stroke-linecap="round"/>
-      <!-- Asiento -->
-      <path d="M8.5 8.5h3" stroke="#7C2D12" stroke-width="2.5" stroke-linecap="round"/>
-    </svg>`
-  },
-
-  // 3. Motocicleta: SVG ilustrativo de moto con chasis en AMARILLO/NARANJA (#EAB308 / #F59E0B)
-  motocicleta: {
-    color: '#EAB308',
-    borderColor: '#EAB308',
-    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <!-- Ruedas -->
-      <circle cx="5" cy="16.5" r="3.5" stroke="#334155" stroke-width="2" fill="#F1F5F9"/>
-      <circle cx="5" cy="16.5" r="1.3" fill="#EAB308"/>
-      <circle cx="19" cy="16.5" r="3.5" stroke="#334155" stroke-width="2" fill="#F1F5F9"/>
-      <circle cx="19" cy="16.5" r="1.3" fill="#EAB308"/>
-      <!-- Chasis amarillo relleno -->
-      <path d="M8 16.5h3.5l3-4h3l1.5 2" stroke="#CA8A04" stroke-width="2" stroke-linecap="round"/>
-      <path d="M10 9.5l3.5 3h4l-1-2.5h-4.5z" fill="#EAB308" stroke="#CA8A04" stroke-width="1"/>
-      <!-- Asiento y manubrio -->
-      <path d="M8 12h3.5" stroke="#1E293B" stroke-width="2.5" stroke-linecap="round"/>
-      <path d="M15.5 8h2l.5 2" stroke="#CA8A04" stroke-width="1.8" stroke-linecap="round"/>
-      <circle cx="17.5" cy="7.5" r="1" fill="#EAB308"/>
-    </svg>`
-  },
-
-  // Motocicleta variante pasajeros
-  motocicleta_pasajeros: {
-    color: '#F59E0B',
-    borderColor: '#F59E0B',
-    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <circle cx="5" cy="16.5" r="3.5" stroke="#334155" stroke-width="2" fill="#FEF3C7"/>
-      <circle cx="5" cy="16.5" r="1.3" fill="#F59E0B"/>
-      <circle cx="19" cy="16.5" r="3.5" stroke="#334155" stroke-width="2" fill="#FEF3C7"/>
-      <circle cx="19" cy="16.5" r="1.3" fill="#F59E0B"/>
-      <path d="M8 16.5h3.5l3-4h3l1.5 2" stroke="#D97706" stroke-width="2" stroke-linecap="round"/>
-      <path d="M9 10l3.5 2.5h4.5l-1.2-2.5H11z" fill="#F59E0B" stroke="#D97706" stroke-width="1"/>
-      <path d="M7.5 12h4" stroke="#1E293B" stroke-width="2.5" stroke-linecap="round"/>
-      <circle cx="11" cy="7.5" r="1.3" fill="#F59E0B"/>
-      <circle cx="15" cy="7.5" r="1.3" fill="#F59E0B"/>
-    </svg>`
-  },
-
-  // 4. Automovil: SVG de auto de perfil en color AZUL (#3B82F6) con carrocería rellena
-  automovil: {
-    color: '#3B82F6',
-    borderColor: '#3B82F6',
-    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <!-- Carroceria rellena en azul -->
-      <path d="M3 14.5c0-.8.6-1.5 1.4-1.6l2.3-.5 2.1-3.6C9.2 8.3 9.8 8 10.5 8h4.8c.7 0 1.3.4 1.7 1l1.8 3.3 2.2.4c.6.1 1 .6 1 1.3v2c0 .6-.4 1-1 1h-1.2a3 3 0 0 1-5.6 0h-4.4a3 3 0 0 1-5.6 0H3c-.6 0-1-.4-1-1v-1.5z" fill="#3B82F6" stroke="#1D4ED8" stroke-width="1"/>
-      <!-- Ventanillas claras -->
-      <path d="M9.8 9.5l-1.4 2.5h3.6V9.5H9.8zm3.6 0v2.5h3.2l-1.3-2.5h-1.9z" fill="#DBEAFE"/>
-      <!-- Ruedas -->
-      <circle cx="7" cy="17" r="2.3" fill="#1E293B" stroke="#FFFFFF" stroke-width="1"/>
-      <circle cx="7" cy="17" r="0.9" fill="#94A3B8"/>
-      <circle cx="17" cy="17" r="2.3" fill="#1E293B" stroke="#FFFFFF" stroke-width="1"/>
-      <circle cx="17" cy="17" r="0.9" fill="#94A3B8"/>
-    </svg>`
-  },
-
-  automovil_pasajeros: {
-    color: '#3B82F6',
-    borderColor: '#3B82F6',
-    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path d="M3 14.5c0-.8.6-1.5 1.4-1.6l2.3-.5 2.1-3.6C9.2 8.3 9.8 8 10.5 8h4.8c.7 0 1.3.4 1.7 1l1.8 3.3 2.2.4c.6.1 1 .6 1 1.3v2c0 .6-.4 1-1 1h-1.2a3 3 0 0 1-5.6 0h-4.4a3 3 0 0 1-5.6 0H3c-.6 0-1-.4-1-1v-1.5z" fill="#2563EB" stroke="#1E40AF" stroke-width="1"/>
-      <path d="M9.8 9.5l-1.4 2.5h3.6V9.5H9.8zm3.6 0v2.5h3.2l-1.3-2.5h-1.9z" fill="#BFDBFE"/>
-      <!-- Cartel remis/taxi arriba -->
-      <rect x="11" y="6.5" width="3" height="1.5" rx="0.5" fill="#FBBF24"/>
-      <circle cx="7" cy="17" r="2.3" fill="#1E293B" stroke="#FFFFFF" stroke-width="1"/>
-      <circle cx="7" cy="17" r="0.9" fill="#94A3B8"/>
-      <circle cx="17" cy="17" r="2.3" fill="#1E293B" stroke="#FFFFFF" stroke-width="1"/>
-      <circle cx="17" cy="17" r="0.9" fill="#94A3B8"/>
-    </svg>`
-  },
-
-  automovil_envios: {
-    color: '#3B82F6',
-    borderColor: '#3B82F6',
-    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path d="M3 14.5c0-.8.6-1.5 1.4-1.6l2.3-.5 2.1-3.6C9.2 8.3 9.8 8 10.5 8h4.8c.7 0 1.3.4 1.7 1l1.8 3.3 2.2.4c.6.1 1 .6 1 1.3v2c0 .6-.4 1-1 1h-1.2a3 3 0 0 1-5.6 0h-4.4a3 3 0 0 1-5.6 0H3c-.6 0-1-.4-1-1v-1.5z" fill="#3B82F6" stroke="#1D4ED8" stroke-width="1"/>
-      <path d="M9.8 9.5l-1.4 2.5h3.6V9.5H9.8zm3.6 0v2.5h3.2l-1.3-2.5h-1.9z" fill="#DBEAFE"/>
-      <circle cx="7" cy="17" r="2.3" fill="#1E293B" stroke="#FFFFFF" stroke-width="1"/>
-      <circle cx="7" cy="17" r="0.9" fill="#94A3B8"/>
-      <circle cx="17" cy="17" r="2.3" fill="#1E293B" stroke="#FFFFFF" stroke-width="1"/>
-      <circle cx="17" cy="17" r="0.9" fill="#94A3B8"/>
-    </svg>`
-  },
-
-  // 5. Fletes / Cargas: SVG de camioneta/camion con carroceria en ROJO (#EF4444) brillante
-  fletes: {
-    color: '#EF4444',
-    borderColor: '#EF4444',
-    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <!-- Caja de carga trasera roja -->
-      <rect x="2" y="7.5" width="11" height="8.5" rx="1" fill="#EF4444" stroke="#B91C1C" stroke-width="1"/>
-      <line x1="2" y1="11.5" x2="13" y2="11.5" stroke="#FFFFFF" stroke-width="0.8" opacity="0.6"/>
-      <!-- Cabina delantera roja -->
-      <path d="M13 10.5h3.5l2.5 3v2.5a1 1 0 0 1-1 1H13v-6.5z" fill="#DC2626" stroke="#991B1B" stroke-width="1"/>
-      <!-- Parabrisas / Ventanilla blanco/celeste -->
-      <path d="M14 11.5h2.2l1.6 2H14v-2z" fill="#FEF2F2"/>
-      <!-- Ruedas -->
-      <circle cx="6" cy="17.5" r="2.5" fill="#1E293B" stroke="#FFFFFF" stroke-width="1"/>
-      <circle cx="6" cy="17.5" r="1" fill="#94A3B8"/>
-      <circle cx="17" cy="17.5" r="2.5" fill="#1E293B" stroke="#FFFFFF" stroke-width="1"/>
-      <circle cx="17" cy="17.5" r="1" fill="#94A3B8"/>
-    </svg>`
-  },
-
-  // 6. Negocios / Comercios: SVG de fachada de tienda/comercio con techo/fachada en ROSA/FUCSIA (#EC4899)
-  negocios: {
-    color: '#EC4899',
-    borderColor: '#EC4899',
-    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <!-- Toldo a rayas rosa/blanco -->
-      <path d="M3 8.5h18l-1.5-4.5H4.5L3 8.5z" fill="#EC4899" stroke="#BE185D" stroke-width="1"/>
-      <path d="M3 8.5c.8.8 2.2.8 3 0s2.2-.8 3 0 2.2.8 3 0 2.2-.8 3 0 2.2.8 3 0" fill="#F43F5E" stroke="#BE185D" stroke-width="0.8"/>
-      <!-- Fachada rosa claro / blanco -->
-      <rect x="4.5" y="9.5" width="15" height="10.5" rx="0.5" fill="#FDF2F8" stroke="#EC4899" stroke-width="1"/>
-      <!-- Puerta fucsia -->
-      <rect x="9.5" y="13" width="5" height="7" rx="0.5" fill="#DB2777"/>
-      <!-- Ventanal / Vidriera -->
-      <rect x="5.5" y="11.5" width="3" height="4" fill="#FBCFE8" stroke="#EC4899" stroke-width="0.8"/>
-      <rect x="15.5" y="11.5" width="3" height="4" fill="#FBCFE8" stroke="#EC4899" stroke-width="0.8"/>
-    </svg>`
+// Helper para obtener el ícono/dibujo exacto del vehículo o modalidad
+const getVehicleVisual = (node) => {
+  if (!node) {
+    return {
+      borderColor: '#10B981',
+      html: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7l-2 5h4l-2-5z"/><path d="M10 12l-1 5"/><path d="M14 12l1 5"/><path d="M9 22l1.5-4"/><path d="M15 22l-1.5-4"/></svg>`
+    };
   }
-};
 
-// Selecciona el SVG correcto leyendo de manera unificada category || vehicle_type || vehicle || role
-const getVehicleSVG = (node) => {
-  if (!node) return VEHICLE_SVG.caminando;
   const raw = node.category || node.vehicle_type || node.vehicle || node.role;
   const catKey = normalizeMobility(raw);
   const modality = node.serviceModality;
 
-  if (catKey === 'bicicleta') return VEHICLE_SVG.bicicleta;
+  // 1. Caminando: Peatón / Mochila
+  if (catKey === 'caminando') {
+    return {
+      borderColor: '#10B981',
+      html: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.2"/><path d="M12 7.2v5.3l-2.2 4.5"/><path d="M12 12.5l2.2 4.5"/><path d="M9.5 10l5-1.5"/><path d="M9 22l1.8-5"/><path d="M15 22l-1.8-5"/></svg>`
+    };
+  }
+
+  // 2. Bicicleta
+  if (catKey === 'bicicleta') {
+    return {
+      borderColor: '#10B981',
+      html: `<svg width="22" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5" stroke="#10B981" stroke-width="2.2"/><circle cx="18.5" cy="17.5" r="3.5" stroke="#10B981" stroke-width="2.2"/><path d="M5.5 17.5h5l3.5-6h-4.5l-4 6"/><path d="M14 11.5l2 6"/><path d="M12 7.5h3l2 4"/></svg>`
+    };
+  }
+
+  // 3. Motocicleta / Moto
   if (catKey === 'motocicleta') {
-    return modality === 'pasajeros' ? VEHICLE_SVG.motocicleta_pasajeros : VEHICLE_SVG.motocicleta;
+    const isPas = modality === 'pasajeros';
+    return {
+      borderColor: '#10B981',
+      html: `<svg width="22" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="16.5" r="3.2" stroke="#10B981" stroke-width="2.2"/><circle cx="18.5" cy="16.5" r="3.2" stroke="#10B981" stroke-width="2.2"/><path d="M8.5 16.5h3l2-4h3l1.5 2"/><path d="M10.5 9.5l2.5 3h3.5"/>${!isPas ? '<rect x="6.5" y="10.5" width="3" height="3" rx="0.5" stroke="#0F172A" fill="#E2E8F0"/>' : ''}</svg>`
+    };
   }
+
+  // 4. Automóvil / Autos
   if (catKey === 'automovil') {
-    if (modality === 'pasajeros') return VEHICLE_SVG.automovil_pasajeros;
-    if (modality === 'envios') return VEHICLE_SVG.automovil_envios;
-    return VEHICLE_SVG.automovil;
+    return {
+      borderColor: '#10B981',
+      html: `<svg width="22" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16H3a1 1 0 0 1-1-1v-3.5a1.5 1.5 0 0 1 1.2-1.47l2.8-.7L8 5.5A2 2 0 0 1 9.7 4h4.6A2 2 0 0 1 16 5.5l2 3.83 2.8.7A1.5 1.5 0 0 1 22 11.5V15a1 1 0 0 1-1 1h-2" stroke="#0F172A" fill="#F8FAFC"/><circle cx="7" cy="16" r="2.5" stroke="#EF4444" stroke-width="2" fill="#FFFFFF"/><circle cx="17" cy="16" r="2.5" stroke="#EF4444" stroke-width="2" fill="#FFFFFF"/></svg>`
+    };
   }
-  if (catKey === 'fletes') return VEHICLE_SVG.fletes;
-  if (catKey === 'negocios') return VEHICLE_SVG.negocios;
-  if (catKey === 'caminando') return VEHICLE_SVG.caminando;
-  return VEHICLE_SVG.caminando;
+
+  // 5. Fletes / Cargas: Camioneta/Camión con cabina y ruedas
+  if (catKey === 'fletes') {
+    return {
+      borderColor: '#10B981',
+      html: `<svg width="22" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="5.5" width="12" height="10" rx="1" stroke="#0F172A" fill="#EF4444"/><path d="M13.5 9.5h4l3 3v3h-7V9.5z" stroke="#0F172A" fill="#DC2626"/><circle cx="6" cy="17" r="2.5" stroke="#0F172A" stroke-width="2" fill="#FFFFFF"/><circle cx="17" cy="17" r="2.5" stroke="#0F172A" stroke-width="2" fill="#FFFFFF"/></svg>`
+    };
+  }
+
+  // 6. Negocios / Comercios
+  if (catKey === 'negocios') {
+    return {
+      borderColor: '#EC4899',
+      html: `<svg width="22" height="20" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 7 4-4h12l4 4"/><path d="M4 11v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9"/><path d="M9 22v-6h6v6"/><path d="M2 7h20" stroke="#EC4899"/></svg>`
+    };
+  }
+
+  return {
+    borderColor: '#10B981',
+    html: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7l-2 5h4l-2-5z"/><path d="M10 12l-1 5"/><path d="M14 12l1 5"/><path d="M9 22l1.5-4"/><path d="M15 22l-1.5-4"/></svg>`
+  };
 };
 
-// Generador de Icono Leaflet — estetica original restaurada con SVG en lugar de emojis
+// Generador de Icono Leaflet EXACTO según la referencia de producción visual
 const createPeerIcon = (node, isSelected, repStatus, formatDistanceKm, isDark) => {
   if (!node) return L.divIcon({ className: 'custom-peer-marker-empty' });
   const isBlocked = repStatus === 'blocked';
@@ -302,12 +195,10 @@ const createPeerIcon = (node, isSelected, repStatus, formatDistanceKm, isDark) =
     ? formatDistanceKm(node.distanceMeters || node.distance)
     : '0.5 km';
 
-  // Vehiculo SVG segun categoria y modalidad
-  const vehicle = getVehicleSVG(node);
-  const vehicleColor = vehicle.color;
-  const vehicleSvg = vehicle.svg;
+  // Obtener SVG y borde exactos
+  const visual = getVehicleVisual(node);
 
-  // Badge de modalidad — mini-pill de color (reemplaza a los emojis 🚖 / 📦 / 🔄)
+  // Badge de modalidad opcional
   let modalityBadge = '';
   if (node.serviceModality === 'pasajeros') {
     modalityBadge = `<span style="font-size:7.5px;background:rgba(245,158,11,0.2);color:#F59E0B;padding:0 3px;border-radius:3px;font-weight:900;border:0.5px solid rgba(245,158,11,0.5);flex-shrink:0;">Pas.</span>`;
@@ -317,13 +208,15 @@ const createPeerIcon = (node, isSelected, repStatus, formatDistanceKm, isDark) =
     modalityBadge = `<span style="font-size:7.5px;background:rgba(16,185,129,0.2);color:#34D399;padding:0 3px;border-radius:3px;font-weight:900;border:0.5px solid rgba(16,185,129,0.5);flex-shrink:0;">Mix.</span>`;
   }
 
-  // Borde a juego con la categoria o estado de reputacion
-  let borderColor = vehicle.borderColor || vehicleColor || '#10B981';
+  // Color de borde y punto de reputación
+  let borderColor = visual.borderColor || '#10B981';
   let repDotFill = '#10B981';
   if (isBlocked) { borderColor = '#F43F5E'; repDotFill = '#F43F5E'; }
   else if (isReported) { borderColor = '#F59E0B'; repDotFill = '#F59E0B'; }
-  const repDot = `<svg width="9" height="9" viewBox="0 0 9 9" style="flex-shrink:0;display:block;"><circle cx="4.5" cy="4.5" r="4" fill="${repDotFill}"/></svg>`;
 
+  const repDot = `<svg width="7" height="7" viewBox="0 0 7 7" style="flex-shrink:0;display:block;"><circle cx="3.5" cy="3.5" r="3.5" fill="${repDotFill}"/></svg>`;
+
+  const bgNode = isDark ? '#0B132B' : '#FFFFFF';
   const textColor = isDark ? '#F1F5F9' : '#0F172A';
   const labelBg = isDark ? '#070C1E' : '#FFFFFF';
   const scaleStyle = isSelected ? 'transform: scale(1.25); filter: drop-shadow(0 0 8px #F7931A);' : '';
@@ -331,42 +224,51 @@ const createPeerIcon = (node, isSelected, repStatus, formatDistanceKm, isDark) =
   return L.divIcon({
     className: 'custom-peer-marker',
     html: `
-      <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;${scaleStyle}">
-        <!-- Burbuja circular blanca del vehiculo con borde de 3px a juego -->
+      <div style="display:flex; flex-direction:column; align-items:center; cursor:pointer; ${scaleStyle}">
+        <!-- Tarjeta redondeada blanca con borde verde/categoría idéntica a las capturas -->
         <div style="
-          width:42px;height:42px;border-radius:9999px;
-          background:#FFFFFF;
-          border:3px solid ${borderColor};
-          display:flex;align-items:center;justify-content:center;
-          box-shadow:0 4px 14px rgba(0,0,0,0.25);
-          position:relative;
+          background:${bgNode};
+          border:2.5px solid ${borderColor};
+          border-radius:14px;
+          padding:3px 8px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          box-shadow:0 3px 10px rgba(0,0,0,0.25);
+          min-width:34px;
+          height:30px;
         ">
-          ${vehicleSvg}
-          <!-- Punto de reputacion -->
-          <svg width="11" height="11" viewBox="0 0 11 11" style="position:absolute;bottom:-2px;right:-2px;display:block;">
-            <circle cx="5.5" cy="5.5" r="5" fill="${repDotFill}" stroke="white" stroke-width="1.5"/>
-          </svg>
+          ${visual.html}
         </div>
-        <!-- Pastilla de datos -->
+
+        <!-- Pastilla de información inferior idéntica a las capturas -->
         <div style="
-          margin-top:3px;
-          background:${labelBg};color:${textColor};
-          border:1.5px solid ${borderColor};border-radius:20px;
-          padding:1px 7px;font-size:9px;font-weight:800;
+          margin-top:2px;
+          background:${labelBg};
+          color:${textColor};
+          border:1px solid ${borderColor};
+          border-radius:6px;
+          padding:1px 6px;
+          font-size:9.5px;
+          font-weight:800;
           white-space:nowrap;
-          box-shadow:0 2px 8px rgba(0,0,0,0.22);
-          display:flex;align-items:center;gap:3px;
-          max-width:120px;overflow:hidden;
+          box-shadow:0 2px 6px rgba(0,0,0,0.22);
+          display:flex;
+          align-items:center;
+          gap:3.5px;
+          max-width:140px;
+          overflow:hidden;
         ">
+          ${repDot}
           ${modalityBadge}
           <span style="overflow:hidden;text-overflow:ellipsis;">${node.name || ''}</span>
-          ${node.locality ? `<span style="font-size:7.5px;opacity:0.8;color:${isDark?'#38BDF8':'#0284C7'};flex-shrink:0;">(${String(node.locality).slice(0,10)})</span>` : ''}
-          <span style="font-family:monospace;color:${isDark?'#94A3B8':'#64748B'};font-size:8px;flex-shrink:0;">${kmDistance}</span>
+          ${node.locality ? `<span style="font-size:8px;opacity:0.9;color:${isDark ? '#38BDF8' : '#0284C7'};flex-shrink:0;">(${String(node.locality).slice(0,10)})</span>` : ''}
+          <span style="font-family:monospace;color:${isDark ? '#94A3B8' : '#64748B'};font-size:8.5px;flex-shrink:0;">(${kmDistance})</span>
         </div>
       </div>
     `,
-    iconSize: [120, 62],
-    iconAnchor: [60, 58]
+    iconSize: [120, 52],
+    iconAnchor: [60, 48]
   });
 };
 
