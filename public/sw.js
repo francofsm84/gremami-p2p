@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gremami-p2p-v4';
+const CACHE_NAME = 'gremami-p2p-v5';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/icon-192.svg',
@@ -40,7 +40,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Estrategia Network-First para navegación HTML (garantiza recibir siempre la versión más reciente en Vercel)
+  // Estrategia Network-First para navegación HTML
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
@@ -54,21 +54,25 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         })
         .catch(() => {
-          // Si está offline, usar el último index.html guardado
           return caches.match('/index.html') || caches.match('/');
         })
     );
     return;
   }
 
-  // Para assets (.js, .css, imágenes): Cache-First con fallback a Network (SIN devolver index.html ante fallos)
+  // Los scripts JS y CSS de Vite (en /assets/) van SIEMPRE directo a la red para ver cambios al instante
+  if (url.pathname.startsWith('/assets/')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Para otros assets estáticos (fuentes, iconos): Cache-First
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
       return fetch(event.request).then((networkResponse) => {
-        // Guardar imágenes o fuentes estáticas en caché
         if (
           networkResponse &&
           networkResponse.status === 200 &&
