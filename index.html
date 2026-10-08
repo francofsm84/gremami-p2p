@@ -29,16 +29,44 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((reg) => {
-              try { reg.update(); } catch (e) {}
-              console.log('SW registrado con éxito:', reg.scope);
-            })
-            .catch((err) => console.log('Error registro SW:', err));
-        });
-      }
+      // Auto-purgado forzado de cachés y Service Workers viejos
+      (async function() {
+        const CURRENT_VERSION = 'v5.2';
+        const lastVersion = localStorage.getItem('gremami_app_version');
+
+        if (lastVersion !== CURRENT_VERSION) {
+          try {
+            if ('serviceWorker' in navigator) {
+              const registrations = await navigator.serviceWorker.getRegistrations();
+              for (const registration of registrations) {
+                await registration.unregister();
+              }
+            }
+            if ('caches' in window) {
+              const keys = await caches.keys();
+              for (const key of keys) {
+                await caches.delete(key);
+              }
+            }
+          } catch (e) {
+            console.warn('Error purgando caché:', e);
+          }
+          localStorage.setItem('gremami_app_version', CURRENT_VERSION);
+          // Recargar una única vez para cargar archivos nuevos al 100%
+          window.location.reload();
+          return;
+        }
+
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+              .then((reg) => {
+                try { reg.update(); } catch (e) {}
+              })
+              .catch((err) => console.log('Error registro SW:', err));
+          });
+        }
+      })();
     </script>
   </body>
 </html>
