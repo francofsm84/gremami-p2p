@@ -338,63 +338,67 @@ const PEER_AVATARS = [
   'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&auto=format&fit=crop&q=80'
 ];
 
-// Zonas Geográficas: Alta Gracia (30% = 15), Córdoba Capital (40% = 20), Intermedias & Paravachasca (30% = 15)
+// Zonas Geográficas: Córdoba (Alta Gracia + Capital + Interior) y Buenos Aires (AMBA + Interior) — 50 zonas
 const GEOGRAPHIC_ZONES = [
-  // 15 Alta Gracia (30%)
+  // ── ALTA GRACIA (10) ────────────────────────────────────────────────────────
   { locality: 'Alta Gracia', label: 'Alta Gracia Centro', lat: -31.6529, lng: -64.4283, km: 0.4 },
   { locality: 'Alta Gracia', label: 'El Tajamar', lat: -31.6538, lng: -64.4270, km: 0.7 },
   { locality: 'Alta Gracia', label: 'Plaza Solares', lat: -31.6520, lng: -64.4305, km: 0.5 },
-  { locality: 'Alta Gracia', label: 'Sierras Hotel', lat: -31.6465, lng: -64.4230, km: 1.2 },
   { locality: 'Alta Gracia', label: 'B° Pellegrini', lat: -31.6580, lng: -64.4350, km: 1.6 },
   { locality: 'Alta Gracia', label: 'El Crucero', lat: -31.6610, lng: -64.4395, km: 2.4 },
-  { locality: 'Alta Gracia', label: 'B° Cámara', lat: -31.6515, lng: -64.4210, km: 0.9 },
-  { locality: 'Alta Gracia', label: 'B° Sur', lat: -31.6640, lng: -64.4260, km: 1.8 },
   { locality: 'Alta Gracia', label: 'Sabattini', lat: -31.6490, lng: -64.4360, km: 1.4 },
-  { locality: 'Alta Gracia', label: 'Av. Libertador', lat: -31.6545, lng: -64.4320, km: 0.8 },
-  { locality: 'Alta Gracia', label: 'B° Don Bosco', lat: -31.6440, lng: -64.4275, km: 1.5 },
-  { locality: 'Alta Gracia', label: 'Parque Virrey', lat: -31.6655, lng: -64.4420, km: 2.7 },
-  { locality: 'Alta Gracia', label: 'B° Norte', lat: -31.6430, lng: -64.4190, km: 1.7 },
-  { locality: 'Alta Gracia', label: 'Villa Oviedo', lat: -31.6680, lng: -64.4340, km: 2.2 },
-  { locality: 'Alta Gracia', label: 'B° Liniers', lat: -31.6500, lng: -64.4410, km: 1.3 },
-
-  // 20 Córdoba Capital (40%)
-  { locality: 'Córdoba Centro', label: 'Córdoba Centro', lat: -31.4165, lng: -64.1835, km: 34.1 },
-  { locality: 'Córdoba Centro', label: 'Peatonal 9 de Julio', lat: -31.4150, lng: -64.1850, km: 34.0 },
-  { locality: 'Córdoba Centro', label: 'Plaza San Martín', lat: -31.4170, lng: -64.1830, km: 34.2 },
-  { locality: 'Córdoba Centro', label: 'Av. Colón', lat: -31.4135, lng: -64.1890, km: 34.5 },
-  { locality: 'Córdoba Centro', label: 'Tribunales Cba', lat: -31.4180, lng: -64.1910, km: 33.8 },
-  { locality: 'Nueva Córdoba', label: 'Nueva Córdoba', lat: -31.4280, lng: -64.1880, km: 32.5 },
-  { locality: 'Nueva Córdoba', label: 'Plaza España', lat: -31.4295, lng: -64.1865, km: 32.7 },
-  { locality: 'Nueva Córdoba', label: 'Paseo Buen Pastor', lat: -31.4255, lng: -64.1875, km: 32.6 },
-  { locality: 'Nueva Córdoba', label: 'Bv. Illia', lat: -31.4220, lng: -64.1820, km: 33.2 },
-  { locality: 'Nueva Córdoba', label: 'Bv. San Juan', lat: -31.4210, lng: -64.1895, km: 33.0 },
-  { locality: 'Barrio Güemes', label: 'Barrio Güemes', lat: -31.4245, lng: -64.1925, km: 32.8 },
-  { locality: 'Barrio Güemes', label: 'Paseo de las Artes', lat: -31.4250, lng: -64.1930, km: 32.9 },
-  { locality: 'Barrio Güemes', label: 'La Cañada Güemes', lat: -31.4230, lng: -64.1915, km: 33.1 },
-  { locality: 'Barrio Güemes', label: 'Calle Belgrano', lat: -31.4260, lng: -64.1940, km: 32.6 },
-  { locality: 'Barrio Güemes', label: 'Marcelo T. Alvear', lat: -31.4225, lng: -64.1920, km: 33.0 },
-  { locality: 'Córdoba Zona Sur', label: 'Córdoba Zona Sur', lat: -31.4550, lng: -64.2050, km: 26.5 },
-  { locality: 'Córdoba Zona Sur', label: 'Ciudad Universitaria', lat: -31.4380, lng: -64.1940, km: 29.5 },
-  { locality: 'Córdoba Zona Sur', label: 'Barrio Jardín', lat: -31.4500, lng: -64.1780, km: 28.0 },
-  { locality: 'Córdoba Zona Sur', label: 'Av. Armada Argentina', lat: -31.4680, lng: -64.2120, km: 24.8 },
-  { locality: 'Córdoba Zona Sur', label: 'B° San Fernando', lat: -31.4600, lng: -64.1980, km: 26.8 },
-
-  // 15 Intermedias & Paravachasca (30%)
-  { locality: 'Santa Ana', label: 'Santa Ana', lat: -31.5720, lng: -64.3580, km: 6.1 },
-  { locality: 'Santa Ana', label: 'Santa Ana Ruta 5', lat: -31.5750, lng: -64.3520, km: 6.5 },
-  { locality: 'Santa Ana', label: 'Santa Ana Centro', lat: -31.5690, lng: -64.3610, km: 6.3 },
-  { locality: 'Malagueño', label: 'Malagueño', lat: -31.4650, lng: -64.3320, km: 16.5 },
-  { locality: 'Malagueño', label: 'Malagueño Yocsina', lat: -31.4580, lng: -64.3410, km: 17.5 },
-  { locality: 'Malagueño', label: 'Malagueño Centro', lat: -31.4690, lng: -64.3280, km: 16.2 },
-  { locality: 'Bouwer', label: 'Bouwer', lat: -31.5620, lng: -64.1950, km: 22.0 },
-  { locality: 'Bouwer', label: 'Bouwer Ruta 36', lat: -31.5580, lng: -64.1910, km: 22.5 },
-  { locality: 'Toledo', label: 'Toledo', lat: -31.5550, lng: -64.0850, km: 32.0 },
-  { locality: 'Toledo', label: 'Toledo Ruta 9', lat: -31.5510, lng: -64.0810, km: 32.5 },
-  { locality: 'Anisacate', label: 'Anisacate', lat: -31.7125, lng: -64.4085, km: 4.2 },
   { locality: 'Anisacate', label: 'Anisacate Río', lat: -31.7160, lng: -64.4120, km: 4.8 },
   { locality: 'Villa La Bolsa', label: 'Villa La Bolsa', lat: -31.7220, lng: -64.4410, km: 6.8 },
-  { locality: 'Villa La Bolsa', label: 'Balneario La Bolsa', lat: -31.7250, lng: -64.4450, km: 7.2 },
-  { locality: 'La Serranita', label: 'La Serranita', lat: -31.7525, lng: -64.4540, km: 11.5 }
+  { locality: 'La Serranita', label: 'La Serranita', lat: -31.7525, lng: -64.4540, km: 11.5 },
+  { locality: 'Santa Ana', label: 'Santa Ana Ruta 5', lat: -31.5720, lng: -64.3580, km: 6.1 },
+
+  // ── CÓRDOBA CAPITAL (10) ────────────────────────────────────────────────────
+  { locality: 'Córdoba Centro', label: 'Córdoba Centro', lat: -31.4165, lng: -64.1835, km: 34.1 },
+  { locality: 'Nueva Córdoba', label: 'Nueva Córdoba', lat: -31.4280, lng: -64.1880, km: 32.5 },
+  { locality: 'Barrio Güemes', label: 'Barrio Güemes', lat: -31.4245, lng: -64.1925, km: 32.8 },
+  { locality: 'Córdoba Zona Sur', label: 'Ciudad Universitaria', lat: -31.4380, lng: -64.1940, km: 29.5 },
+  { locality: 'Córdoba Zona Norte', label: 'Villa Allende', lat: -31.2980, lng: -64.2960, km: 48.5 },
+  { locality: 'Malagueño', label: 'Malagueño', lat: -31.4650, lng: -64.3320, km: 16.5 },
+  { locality: 'Bouwer', label: 'Bouwer Ruta 36', lat: -31.5580, lng: -64.1910, km: 22.5 },
+  { locality: 'Toledo', label: 'Toledo Ruta 9 Sur', lat: -31.5550, lng: -64.0850, km: 32.0 },
+  { locality: 'Córdoba Centro', label: 'Av. Colón Córdoba', lat: -31.4135, lng: -64.1890, km: 34.5 },
+  { locality: 'Córdoba Zona Sur', label: 'B° San Fernando', lat: -31.4600, lng: -64.1980, km: 26.8 },
+
+  // ── CÓRDOBA INTERIOR (10) ───────────────────────────────────────────────────
+  { locality: 'Villa Carlos Paz', label: 'Villa Carlos Paz Centro', lat: -31.4230, lng: -64.4980, km: 36.5 },
+  { locality: 'Villa Carlos Paz', label: 'Costa Azul C. Paz', lat: -31.4085, lng: -64.5120, km: 38.0 },
+  { locality: 'Villa María', label: 'Villa María Centro', lat: -32.4073, lng: -63.2438, km: 140.0 },
+  { locality: 'Villa María', label: 'Villa Nueva (V. María)', lat: -32.4220, lng: -63.2350, km: 141.5 },
+  { locality: 'Río Cuarto', label: 'Río Cuarto Centro', lat: -33.1315, lng: -64.3502, km: 215.0 },
+  { locality: 'Río Cuarto', label: 'Alberdi Río Cuarto', lat: -33.1450, lng: -64.3620, km: 216.5 },
+  { locality: 'Bell Ville', label: 'Bell Ville', lat: -32.6274, lng: -62.6905, km: 185.0 },
+  { locality: 'San Francisco', label: 'San Francisco Cba', lat: -31.4282, lng: -62.0852, km: 195.0 },
+  { locality: 'Cruz del Eje', label: 'Cruz del Eje', lat: -30.7263, lng: -64.8036, km: 120.0 },
+  { locality: 'La Falda', label: 'La Falda — Punilla', lat: -31.0919, lng: -64.4874, km: 80.0 },
+
+  // ── BUENOS AIRES — CABA / GBA (10) ─────────────────────────────────────────
+  { locality: 'CABA', label: 'Buenos Aires Centro', lat: -34.6037, lng: -58.3816, km: 710.0 },
+  { locality: 'CABA', label: 'Palermo CABA', lat: -34.5755, lng: -58.4330, km: 708.0 },
+  { locality: 'CABA', label: 'Caballito CABA', lat: -34.6192, lng: -58.4427, km: 712.0 },
+  { locality: 'CABA', label: 'San Telmo / La Boca', lat: -34.6247, lng: -58.3733, km: 711.0 },
+  { locality: 'CABA', label: 'Núñez / Belgrano', lat: -34.5445, lng: -58.4565, km: 706.0 },
+  { locality: 'GBA Norte', label: 'San Isidro', lat: -34.4713, lng: -58.5267, km: 695.0 },
+  { locality: 'GBA Norte', label: 'Tigre Delta', lat: -34.4260, lng: -58.5796, km: 690.0 },
+  { locality: 'GBA Oeste', label: 'Morón / Haedo', lat: -34.6530, lng: -58.6191, km: 720.0 },
+  { locality: 'GBA Sur', label: 'Quilmes Centro', lat: -34.7241, lng: -58.2584, km: 718.0 },
+  { locality: 'GBA Sur', label: 'Lanús / Avellaneda', lat: -34.6902, lng: -58.3732, km: 714.0 },
+
+  // ── BUENOS AIRES INTERIOR (10) ──────────────────────────────────────────────
+  { locality: 'La Plata', label: 'La Plata Centro', lat: -34.9215, lng: -57.9545, km: 730.0 },
+  { locality: 'La Plata', label: 'City Bell (La Plata)', lat: -34.8729, lng: -58.0527, km: 725.0 },
+  { locality: 'Mar del Plata', label: 'Mar del Plata Centro', lat: -38.0028, lng: -57.5575, km: 400.0 },
+  { locality: 'Mar del Plata', label: 'MDQ Playa Grande', lat: -38.0290, lng: -57.5320, km: 402.0 },
+  { locality: 'Bahía Blanca', label: 'Bahía Blanca Centro', lat: -38.7183, lng: -62.2663, km: 508.0 },
+  { locality: 'Bahía Blanca', label: 'Villa Harding Green BB', lat: -38.7280, lng: -62.2480, km: 510.0 },
+  { locality: 'Tandil', label: 'Tandil Centro', lat: -37.3217, lng: -59.1332, km: 332.0 },
+  { locality: 'Tandil', label: 'Tandil Cerro El Centinela', lat: -37.3380, lng: -59.1200, km: 334.0 },
+  { locality: 'Rosario', label: 'Rosario Centro (Santa Fe)', lat: -32.9468, lng: -60.6393, km: 310.0 },
+  { locality: 'Rosario', label: 'Rosario Sur Fisherton', lat: -32.9610, lng: -60.6890, km: 312.0 }
 ];
 
 // Solicitudes en vivo y pedidos en subasta iniciales en la red de Alta Gracia
