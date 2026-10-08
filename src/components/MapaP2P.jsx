@@ -43,7 +43,10 @@ import {
   Package,
   Gavel,
   Calendar,
-  Lock
+  Lock,
+  Maximize2,
+  Minimize2,
+  ChevronUp
 } from 'lucide-react';
 import { getPeerSocials, getSocialLink, getModalityInfo, SERVICE_MODALITIES } from '../data/mockData';
 
@@ -294,7 +297,7 @@ const createLandmarkIcon = (emoji, title, subtitle, isDark) => {
 };
 
 // Controlador auxiliar para mover el mapa reactivamente con flyTo
-function MapController({ selectedNode, selectedAuction, recenterTrigger, userCoords }) {
+function MapController({ selectedNode, selectedAuction, recenterTrigger, userCoords, expandTrigger }) {
   const map = useMap();
 
   useEffect(() => {
@@ -316,12 +319,21 @@ function MapController({ selectedNode, selectedAuction, recenterTrigger, userCoo
     }
   }, [recenterTrigger, map, userCoords]);
 
+  // Recalcular tamaño del mapa tras montar
   useEffect(() => {
     const timer = setTimeout(() => {
       map.invalidateSize();
     }, 200);
     return () => clearTimeout(timer);
   }, [map]);
+
+  // Recalcular cuando cambia el estado de expansión (fullscreen toggle)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 320); // ligeramente después de la transición CSS de 300ms
+    return () => clearTimeout(timer);
+  }, [expandTrigger, map]);
 
   return null;
 }
@@ -466,6 +478,20 @@ export default function MapaP2P(props) {
   const [selectedModalityFilter, setSelectedModalityFilter] = useState('all');
   const [showCompetitorBids, setShowCompetitorBids] = useState(true);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
+
+  // Estado de pantalla completa del mapa (colapsar/expandir controles superpuestos)
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
+  const [expandTrigger, setExpandTrigger] = useState(0);
+
+  const handleToggleMapExpand = () => {
+    setIsMapExpanded((prev) => !prev);
+    setExpandTrigger((prev) => prev + 1);
+    // Si había bottom sheets abiertos los cerramos para una vista limpia
+    if (!isMapExpanded) {
+      setSelectedNode(null);
+      setSelectedAuction(null);
+    }
+  };
 
   // Sincronizar el pedido en subasta seleccionado con el estado reactivo global de liveRequests
   const activeAuction = selectedAuction
@@ -755,7 +781,10 @@ export default function MapaP2P(props) {
     <div className={`flex-1 flex flex-col min-h-0 relative overflow-hidden transition-colors duration-200 select-none ${
       isDark ? 'bg-[#0A1128] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'
     }`}>
-      {/* 1. Barra Superior de Categorías con filtro "🌟 TODAS" */}
+      {/* 1. Barra Superior de Categorías — colapsable cuando el mapa está expandido */}
+      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+        isMapExpanded ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-64 opacity-100'
+      }`}>
       <div className={`p-2.5 border-b z-20 transition-colors shadow-xs ${
         isDark ? 'bg-[#0B132B] border-[#1F2D48]' : 'bg-white border-slate-200'
       }`}>
@@ -944,6 +973,7 @@ export default function MapaP2P(props) {
           </div>
         )}
       </div>
+      </div>{/* /collapsible top bar wrapper */}
 
       {/* 3. Banner Flotante de Alerta en Vivo (Modo Cadete / Prestador) */}
       {activeAlert && (
@@ -994,6 +1024,29 @@ export default function MapaP2P(props) {
 
       {/* 4. Mapa Interactivo Vectorial react-leaflet con CartoDB Positron (Alta Gracia, Córdoba) */}
       <div className="flex-1 relative w-full h-full min-h-0 overflow-hidden select-none">
+        {/* Botón flotante de colapsar/expandir el mapa (Toggle Fullscreen) */}
+        <button
+          onClick={handleToggleMapExpand}
+          title={isMapExpanded ? 'Restaurar vista con controles' : 'Expandir mapa a pantalla completa'}
+          className={`absolute top-3 left-1/2 -translate-x-1/2 z-[1001] flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border shadow-lg text-[11px] font-bold transition-all duration-200 active:scale-95 ${
+            isDark
+              ? 'bg-[#0B132B]/90 text-slate-200 border-[#2A3B5C] hover:bg-[#18243C] hover:text-white backdrop-blur-sm'
+              : 'bg-white/90 text-slate-700 border-slate-300 hover:bg-slate-100 hover:text-slate-900 backdrop-blur-sm shadow-md'
+          }`}
+        >
+          {isMapExpanded ? (
+            <>
+              <Minimize2 size={13} />
+              <span>Restaurar</span>
+            </>
+          ) : (
+            <>
+              <Maximize2 size={13} />
+              <span>Pantalla completa</span>
+            </>
+          )}
+        </button>
+
         <MapContainer
           center={ALTA_GRACIA_CENTER}
           zoom={12}
@@ -1015,12 +1068,13 @@ export default function MapaP2P(props) {
             maxZoom={19}
           />
 
-          {/* Controlador reactivo para centrado y vuelo suave a nodos */}
+          {/* Controlador reactivo para centrado, vuelo suave y recalculo de tamaño */}
           <MapController 
             selectedNode={selectedNode} 
             selectedAuction={selectedAuction}
             recenterTrigger={recenterTrigger}
             userCoords={userCoords}
+            expandTrigger={expandTrigger}
           />
 
           {/* Controles flotantes de Zoom (+/-) y Recentrar suavemente en Mi Ubicación (GPS) */}
