@@ -139,6 +139,11 @@ const VEHICLE_SVG = {
   fletes: {
     color: '#8B5CF6',
     svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="14" height="13" rx="1"/><path d="M15 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`
+  },
+  // Negocio / Comercio / Tienda (equivalente a emoji 🏪)
+  negocios: {
+    color: '#EC4899',
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`
   }
 };
 
@@ -171,6 +176,7 @@ const getVehicleSVG = (node) => {
     return VEHICLE_SVG.automovil;
   }
   if (catKey === 'fletes') return VEHICLE_SVG.fletes;
+  if (catKey === 'negocios') return VEHICLE_SVG.negocios;
   return VEHICLE_SVG.caminando;
 };
 
@@ -691,6 +697,7 @@ export default function MapaP2P(props) {
     if (c === 'motocicleta' || c === 'moto' || c === 'scooter') return 'motocicleta';
     if (c === 'automovil' || c === 'auto' || c === 'remis' || c === 'taxi' || c === 'sedan' || c === 'car') return 'automovil';
     if (c === 'fletes' || c === 'flete' || c === 'carga' || c === 'truck' || c === 'camion') return 'fletes';
+    if (c === 'negocios' || c === 'comercio' || c === 'tienda' || c === 'store' || c === 'shop') return 'negocios';
     return c;
   }, []);
 
@@ -901,17 +908,19 @@ export default function MapaP2P(props) {
     if (isCadete) {
       return matchesAuctionCategory(item, catId);
     }
-    return item.category === catId;
+    // Usar normalizeMobility para comparacion robusta (cubre 'comercio' → 'negocios', 'moto' → 'motocicleta', etc.)
+    return normalizeMobility(item.category) === normalizeMobility(catId);
   }).length;
 
-  // 5 Categorías Principales con contadores dinámicos y "🌟 TODAS" (250 Nodos / 250 Solicitudes)
+  // 6 Categorias Principales + Negocios con contadores dinamicos
   const categoriesList = [
-    { id: 'all', label: `🌟 TODAS (${activeSource.length})`, icon: Sparkles },
-    { id: 'caminando', label: `🚶 Caminando (${countByCategory('caminando')})`, icon: Footprints },
-    { id: 'bicicleta', label: `🚲 Bicicleta (${countByCategory('bicicleta')})`, icon: Bike },
-    { id: 'motocicleta', label: `🏍️ Motos (${countByCategory('motocicleta')})`, icon: MotorcycleIcon },
-    { id: 'automovil', label: `🚗 Autos (${countByCategory('automovil')})`, icon: Car },
-    { id: 'fletes', label: `🚚 Fletes / Cargas (${countByCategory('fletes')})`, icon: Truck }
+    { id: 'all', label: `TODAS (${activeSource.length})`, icon: Sparkles },
+    { id: 'caminando', label: `Caminando (${countByCategory('caminando')})`, icon: Footprints },
+    { id: 'bicicleta', label: `Bicicleta (${countByCategory('bicicleta')})`, icon: Bike },
+    { id: 'motocicleta', label: `Motos (${countByCategory('motocicleta')})`, icon: MotorcycleIcon },
+    { id: 'automovil', label: `Autos (${countByCategory('automovil')})`, icon: Car },
+    { id: 'fletes', label: `Fletes (${countByCategory('fletes')})`, icon: Truck },
+    { id: 'negocios', label: `Negocios (${countByCategory('negocios')})`, icon: Store }
   ];
 
   return (
