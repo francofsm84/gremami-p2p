@@ -152,6 +152,7 @@ const normalizeCategoryForIcon = (cat) => {
   if (c === 'motocicleta' || c === 'moto' || c.includes('moto') || c.includes('scooter')) return 'motocicleta';
   if (c === 'automovil' || c === 'auto' || c === 'remis' || c === 'taxi' || c.includes('auto') || c.includes('car')) return 'automovil';
   if (c === 'fletes' || c === 'flete' || c === 'carga' || c.includes('flete') || c.includes('truck') || c.includes('carg')) return 'fletes';
+  if (c === 'negocios' || c === 'comercio' || c === 'tienda' || c === 'store' || c.includes('negoc') || c.includes('comerc') || c.includes('shop')) return 'negocios';
   return 'caminando';
 };
 
