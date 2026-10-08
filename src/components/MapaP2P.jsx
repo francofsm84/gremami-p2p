@@ -767,6 +767,9 @@ export default function MapaP2P(props) {
     if (target === 'fletes') {
       return cat === 'fletes' || cat === 'flete' || cat === 'carga' || vType.includes('flete') || vType.includes('carga') || vType.includes('camion') || vType.includes('camión') || vType.includes('truck');
     }
+    if (target === 'negocios') {
+      return cat === 'negocios' || cat === 'comercio' || cat === 'tienda' || cat === 'store' || vType.includes('negoc') || vType.includes('comerc') || vType.includes('shop');
+    }
 
     return false;
   };
@@ -1169,13 +1172,14 @@ export default function MapaP2P(props) {
         </div>
       )}
 
-      {/* 4. Mapa Interactivo Vectorial react-leaflet con CartoDB Positron (Alta Gracia, Córdoba) */}
+      {/* 4. Mapa Interactivo Vectorial react-leaflet */}
       <div className="flex-1 relative w-full h-full min-h-0 overflow-hidden select-none">
-        {/* Botón flotante de colapsar/expandir el mapa (Toggle Fullscreen) */}
+        {/* Botón flotante de colapsar/expandir el mapa — siempre visible, logueado o no */}
         <button
           onClick={handleToggleMapExpand}
           title={isMapExpanded ? 'Restaurar vista con controles' : 'Expandir mapa a pantalla completa'}
-          className={`absolute top-3 left-1/2 -translate-x-1/2 z-[1001] flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border shadow-lg text-[11px] font-bold transition-all duration-200 active:scale-95 ${
+          style={{ zIndex: 1060 }}
+          className={`absolute top-3 left-1/2 -translate-x-1/2 pointer-events-auto flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border shadow-lg text-[11px] font-bold transition-all duration-200 active:scale-95 ${
             isDark
               ? 'bg-[#0B132B]/90 text-slate-200 border-[#2A3B5C] hover:bg-[#18243C] hover:text-white backdrop-blur-sm'
               : 'bg-white/90 text-slate-700 border-slate-300 hover:bg-slate-100 hover:text-slate-900 backdrop-blur-sm shadow-md'
