@@ -1,7 +1,12 @@
 // Utilidad de Alerta Sonora y Notificación en Tiempo Real P2P
 // Generador de audio sintetizado con Web Audio API (compatible con cualquier navegador y móvil)
 
+// AUDIO_MUTED: true = silencia todas las alertas sonoras automaticas (evita ruido al cargar)
+// Cambiar a false para reactivar sonidos en produccion cuando el sistema de preferencias este listo
+const AUDIO_MUTED = true;
+
 export const playP2PAlertChime = () => {
+  if (AUDIO_MUTED) return; // Silenciado globalmente
   try {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return;

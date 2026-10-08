@@ -219,21 +219,42 @@ const createPeerIcon = (node, isSelected, repStatus, formatDistanceKm, isDark) =
   return L.divIcon({
     className: 'custom-peer-marker',
     html: `
-      <div style="display:flex; flex-direction:column; align-items:center; cursor:pointer; ${scaleStyle}">
-        <div style="background:${bgNode}; border:2.5px solid ${borderColor}; border-radius:14px; padding:3px 7px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+      <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;${scaleStyle}">
+        <!-- Burbuja circular del vehiculo -->
+        <div style="
+          width:42px;height:42px;border-radius:9999px;
+          background:${isDark ? `rgba(${vehicleColor.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')},0.15)` : '#FFFFFF'};
+          border:3px solid ${borderColor};
+          display:flex;align-items:center;justify-content:center;
+          box-shadow:0 4px 14px rgba(0,0,0,0.28),0 0 0 1px ${borderColor}22;
+          position:relative;
+        ">
           ${vehicleSvg}
+          <!-- Punto de reputacion -->
+          <svg width="11" height="11" viewBox="0 0 11 11" style="position:absolute;bottom:-2px;right:-2px;display:block;">
+            <circle cx="5.5" cy="5.5" r="5" fill="${repDotFill}" stroke="white" stroke-width="1.5"/>
+          </svg>
         </div>
-        <div style="margin-top:2px; background:${labelBg}; color:${textColor}; border:1px solid ${borderColor}; border-radius:6px; padding:1px 6px; font-size:9.5px; font-weight:800; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.25); display:flex; align-items:center; gap:3px;">
-          ${repDot}
+        <!-- Pastilla de datos -->
+        <div style="
+          margin-top:3px;
+          background:${labelBg};color:${textColor};
+          border:1.5px solid ${borderColor};border-radius:20px;
+          padding:1px 7px;font-size:9px;font-weight:800;
+          white-space:nowrap;
+          box-shadow:0 2px 8px rgba(0,0,0,0.22);
+          display:flex;align-items:center;gap:3px;
+          max-width:120px;overflow:hidden;
+        ">
           ${modalityBadge}
-          <span>${node.name || ''}</span>
-          ${node.locality ? `<span style="font-size:8px; opacity:0.9; color:${isDark ? '#38BDF8' : '#0284C7'};">(${node.locality})</span>` : ''}
-          <span style="font-family:monospace; color:${isDark ? '#94A3B8' : '#64748B'}; font-size:8.5px;">(${kmDistance})</span>
+          <span style="overflow:hidden;text-overflow:ellipsis;">${node.name || ''}</span>
+          ${node.locality ? `<span style="font-size:7.5px;opacity:0.8;color:${isDark?'#38BDF8':'#0284C7'};flex-shrink:0;">(${String(node.locality).slice(0,10)})</span>` : ''}
+          <span style="font-family:monospace;color:${isDark?'#94A3B8':'#64748B'};font-size:8px;flex-shrink:0;">${kmDistance}</span>
         </div>
       </div>
     `,
-    iconSize: [115, 52],
-    iconAnchor: [57, 48]
+    iconSize: [120, 62],
+    iconAnchor: [60, 58]
   });
 };
 
@@ -1125,60 +1146,16 @@ export default function MapaP2P(props) {
       </div>
       </div>{/* /collapsible top bar wrapper */}
 
-      {/* 3. Banner Flotante de Alerta en Vivo (Modo Cadete / Prestador) */}
-      {activeAlert && (
-        <div className={`mx-2.5 mt-2 p-2.5 rounded-2xl border z-20 shadow-xl animate-in slide-in-from-top duration-200 flex items-center justify-between gap-2.5 ${
-          isDark 
-            ? 'bg-gradient-to-r from-[#1E1128] via-[#121B2D] to-[#0A1A2F] border-amber-500/60 text-white' 
-            : 'bg-amber-50 border-amber-400 text-slate-900 shadow-md'
-        }`}>
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="relative flex-shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#E02424] to-[#F7931A] flex items-center justify-center text-black font-bold">
-                <Bell size={16} className="text-black" />
-              </div>
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <p className="text-xs font-black text-[#F7931A] truncate">
-                  {activeAlert.title}
-                </p>
-                <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-[#F7931A] px-1.5 py-0.2 rounded border border-amber-500/40">
-                  {activeAlert.request?.distanceKm || '0.5 km'}
-                </span>
-              </div>
-              <p className={`text-[10px] truncate leading-tight ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                {activeAlert.subtitle}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <button
-              onClick={() => setShowProposalModal(true)}
-              className="px-2.5 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-[10px] shadow-sm active:scale-95"
-            >
-              Cotizar Tarifa
-            </button>
-            <button
-              onClick={dismissAlert}
-              className={`p-1 rounded-lg ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}
-              title="Cerrar alerta"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Banner de alertas de proximidad desactivado — evita sonidos repetitivos al cargar */}
+      {/* {activeAlert && (...)} — disponible para reactivar en configuracion de perfil */}
 
       {/* 4. Mapa Interactivo Vectorial react-leaflet */}
       <div className="flex-1 relative w-full h-full min-h-0 overflow-hidden select-none">
-        {/* Botón flotante de colapsar/expandir el mapa — siempre visible, logueado o no */}
+        {/* Boton fullscreen — z-index 2000 garantiza visibilidad sobre cualquier overlay */}
         <button
           onClick={handleToggleMapExpand}
           title={isMapExpanded ? 'Restaurar vista con controles' : 'Expandir mapa a pantalla completa'}
-          style={{ zIndex: 1060 }}
+          style={{ zIndex: 2000 }}
           className={`absolute top-3 left-1/2 -translate-x-1/2 pointer-events-auto flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border shadow-lg text-[11px] font-bold transition-all duration-200 active:scale-95 ${
             isDark
               ? 'bg-[#0B132B]/90 text-slate-200 border-[#2A3B5C] hover:bg-[#18243C] hover:text-white backdrop-blur-sm'
