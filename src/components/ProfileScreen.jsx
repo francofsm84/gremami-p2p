@@ -1046,6 +1046,71 @@ export default function ProfileScreen() {
               </div>
             </div>
 
+            {/* 🎯 Radio de Alertas Cercanas */}
+            <div className={`p-3 rounded-2xl border space-y-3 ${
+              isDark ? 'bg-[#070C1E] border-slate-800' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] font-bold text-[#F7931A]">
+                  🎯 Radio de Alertas Cercanas
+                </label>
+                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                  isDark ? 'text-blue-300 bg-blue-950/40 border-blue-700/40' : 'text-blue-700 bg-blue-50 border-blue-200'
+                }`}>
+                  {userProfile.coverageRadius ?? 5} km
+                </span>
+              </div>
+
+              {/* Botones de modo de movilidad */}
+              <div className="grid grid-cols-4 gap-1.5">
+                {[
+                  { id: 'caminando', label: '🚶 Caminando' },
+                  { id: 'bicicleta', label: '🚲 Bicicleta' },
+                  { id: 'moto', label: '🏍️ Moto' },
+                  { id: 'auto', label: '🚗 Auto' }
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => updateUserProfile({ mobilityMode: m.id })}
+                    className={`py-1.5 px-1 rounded-xl text-[10px] font-semibold border transition-all text-center active:scale-95 ${
+                      (userProfile.mobilityMode ?? 'moto') === m.id
+                        ? 'bg-[#F7931A] text-slate-950 border-amber-400 font-bold shadow-sm'
+                        : isDark
+                        ? 'bg-[#121B2D] border-slate-700 text-slate-300 hover:border-slate-500'
+                        : 'bg-white border-slate-300 text-slate-700 hover:border-amber-300'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Slider de radio */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Radio mínimo: 1 km
+                  </span>
+                  <span className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Máximo: 25 km
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={25}
+                  step={1}
+                  value={userProfile.coverageRadius ?? 5}
+                  onChange={(e) => updateUserProfile({ coverageRadius: Number(e.target.value) })}
+                  className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#F7931A]"
+                />
+                <p className={`text-[10px] leading-snug ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Recibirás alertas de servicios o cadetes dentro de este radio GPS.
+                </p>
+              </div>
+            </div>
+
             {/* Redes Sociales y Contacto Directo */}
             <div className={`p-3 rounded-2xl border space-y-2.5 ${
               isDark ? 'bg-[#070C1E] border-slate-800' : 'bg-slate-50 border-slate-200'

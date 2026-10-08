@@ -30,6 +30,17 @@ export const EXCHANGE_RATES = {
   USD_PER_VALENS: 2.0
 };
 
+// Fórmula de Haversine — distancia entre dos puntos GPS en kilómetros
+const haversineKm = (lat1, lng1, lat2, lng2) => {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
 export function AppProvider({ children }) {
   // Theme: 'dark' (Cripto Dark) or 'light' (High Contrast Urbano)
   const [theme, setTheme] = useState(() => {
@@ -98,6 +109,8 @@ export function AppProvider({ children }) {
         if (!parsed.fiatCbuCvu) parsed.fiatCbuCvu = '0000003100049281729384';
         if (!parsed.fiatHolderName) parsed.fiatHolderName = 'Satoshi Dev Nakamoto';
         if (!parsed.fiatCuit) parsed.fiatCuit = '20-38492019-4';
+        if (!parsed.coverageRadius) parsed.coverageRadius = 5;
+        if (!parsed.mobilityMode) parsed.mobilityMode = 'moto';
         return parsed;
       }
     } catch (e) {}
@@ -133,7 +146,9 @@ export function AppProvider({ children }) {
         positiveRatingPercent: 100,
         commissionsSavedArs: 48500,
         totalTripsAllTime: 42
-      }
+      },
+      coverageRadius: 5,
+      mobilityMode: 'moto'
     };
   });
 
@@ -401,6 +416,38 @@ export function AppProvider({ children }) {
       sub?.unsubscribe();
     };
   }, []);
+
+  // Ref para rastrear alertas ya disparadas y evitar spam
+  const alertedIdsRef = React.useRef(new Set());
+
+  // Alerta de Cercanía por Radio Configurable (Haversine)
+  useEffect(() => {
+    if (!userGpsCoords || !Array.isArray(userGpsCoords) || userGpsCoords.length < 2) return;
+    const [uLat, uLng] = userGpsCoords;
+    const radius = userProfile?.coverageRadius ?? 5;
+
+    const items = role === 'cadete'
+      ? (liveRequests || []).filter((r) => r.lat && r.lng && r.status === 'open')
+      : (peers || []).filter((p) => p.lat && p.lng && p.isOnline);
+
+    for (const item of items) {
+      if (alertedIdsRef.current.has(item.id)) continue;
+      const dist = haversineKm(uLat, uLng, Number(item.lat), Number(item.lng));
+      if (dist <= radius) {
+        alertedIdsRef.current.add(item.id);
+        const label = item.clientName || item.name || 'Servicio cercano';
+        showToast(`🔔 ¡Nuevo a ${dist.toFixed(1)} km! ${label}`, 'info');
+        setActiveAlert({
+          id: item.id,
+          title: `🔔 ¡Nuevo servicio a ${dist.toFixed(1)} km!`,
+          subtitle: item.description || item.categoryLabel || label,
+          request: item
+        });
+        playP2PAlertChime();
+        break;
+      }
+    }
+  }, [liveRequests, peers, userGpsCoords, role, userProfile?.coverageRadius]);
 
   // Helper to switch role with feedback
   const handleSetRole = (newRole) => {
@@ -1586,6 +1633,7 @@ export function AppProvider({ children }) {
         userName,
         setUserName,
         currentUser,
+        user: currentUser,
         setCurrentUser,
         isAuthModalOpen,
         setIsAuthModalOpen,
