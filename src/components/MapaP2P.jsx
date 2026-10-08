@@ -118,75 +118,7 @@ export const normalizeMobility = (raw) => {
 
 const normalizeCategoryForIcon = normalizeMobility;
 
-// Helper para obtener el ícono/dibujo exacto del vehículo o modalidad
-const getVehicleVisual = (node) => {
-  if (!node) {
-    return {
-      borderColor: '#10B981',
-      html: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7l-2 5h4l-2-5z"/><path d="M10 12l-1 5"/><path d="M14 12l1 5"/><path d="M9 22l1.5-4"/><path d="M15 22l-1.5-4"/></svg>`
-    };
-  }
-
-  const raw = node.category || node.vehicle_type || node.vehicle || node.role;
-  const catKey = normalizeMobility(raw);
-  const modality = node.serviceModality;
-
-  // 1. Caminando: Peatón / Mochila
-  if (catKey === 'caminando') {
-    return {
-      borderColor: '#10B981',
-      html: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.2"/><path d="M12 7.2v5.3l-2.2 4.5"/><path d="M12 12.5l2.2 4.5"/><path d="M9.5 10l5-1.5"/><path d="M9 22l1.8-5"/><path d="M15 22l-1.8-5"/></svg>`
-    };
-  }
-
-  // 2. Bicicleta
-  if (catKey === 'bicicleta') {
-    return {
-      borderColor: '#10B981',
-      html: `<svg width="22" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5" stroke="#10B981" stroke-width="2.2"/><circle cx="18.5" cy="17.5" r="3.5" stroke="#10B981" stroke-width="2.2"/><path d="M5.5 17.5h5l3.5-6h-4.5l-4 6"/><path d="M14 11.5l2 6"/><path d="M12 7.5h3l2 4"/></svg>`
-    };
-  }
-
-  // 3. Motocicleta / Moto
-  if (catKey === 'motocicleta') {
-    const isPas = modality === 'pasajeros';
-    return {
-      borderColor: '#10B981',
-      html: `<svg width="22" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="16.5" r="3.2" stroke="#10B981" stroke-width="2.2"/><circle cx="18.5" cy="16.5" r="3.2" stroke="#10B981" stroke-width="2.2"/><path d="M8.5 16.5h3l2-4h3l1.5 2"/><path d="M10.5 9.5l2.5 3h3.5"/>${!isPas ? '<rect x="6.5" y="10.5" width="3" height="3" rx="0.5" stroke="#0F172A" fill="#E2E8F0"/>' : ''}</svg>`
-    };
-  }
-
-  // 4. Automóvil / Autos
-  if (catKey === 'automovil') {
-    return {
-      borderColor: '#10B981',
-      html: `<svg width="22" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16H3a1 1 0 0 1-1-1v-3.5a1.5 1.5 0 0 1 1.2-1.47l2.8-.7L8 5.5A2 2 0 0 1 9.7 4h4.6A2 2 0 0 1 16 5.5l2 3.83 2.8.7A1.5 1.5 0 0 1 22 11.5V15a1 1 0 0 1-1 1h-2" stroke="#0F172A" fill="#F8FAFC"/><circle cx="7" cy="16" r="2.5" stroke="#EF4444" stroke-width="2" fill="#FFFFFF"/><circle cx="17" cy="16" r="2.5" stroke="#EF4444" stroke-width="2" fill="#FFFFFF"/></svg>`
-    };
-  }
-
-  // 5. Fletes / Cargas: Camioneta/Camión con cabina y ruedas
-  if (catKey === 'fletes') {
-    return {
-      borderColor: '#10B981',
-      html: `<svg width="22" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="5.5" width="12" height="10" rx="1" stroke="#0F172A" fill="#EF4444"/><path d="M13.5 9.5h4l3 3v3h-7V9.5z" stroke="#0F172A" fill="#DC2626"/><circle cx="6" cy="17" r="2.5" stroke="#0F172A" stroke-width="2" fill="#FFFFFF"/><circle cx="17" cy="17" r="2.5" stroke="#0F172A" stroke-width="2" fill="#FFFFFF"/></svg>`
-    };
-  }
-
-  // 6. Negocios / Comercios
-  if (catKey === 'negocios') {
-    return {
-      borderColor: '#EC4899',
-      html: `<svg width="22" height="20" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 7 4-4h12l4 4"/><path d="M4 11v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9"/><path d="M9 22v-6h6v6"/><path d="M2 7h20" stroke="#EC4899"/></svg>`
-    };
-  }
-
-  return {
-    borderColor: '#10B981',
-    html: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7l-2 5h4l-2-5z"/><path d="M10 12l-1 5"/><path d="M14 12l1 5"/><path d="M9 22l1.5-4"/><path d="M15 22l-1.5-4"/></svg>`
-  };
-};
-
-// Generador de Icono Leaflet EXACTO según la referencia de producción visual
+// Generador de Icono Leaflet Personalizado para Nodos / Prestadores (Estilo Original Nativo)
 const createPeerIcon = (node, isSelected, repStatus, formatDistanceKm, isDark) => {
   if (!node) return L.divIcon({ className: 'custom-peer-marker-empty' });
   const isBlocked = repStatus === 'blocked';
@@ -195,80 +127,65 @@ const createPeerIcon = (node, isSelected, repStatus, formatDistanceKm, isDark) =
     ? formatDistanceKm(node.distanceMeters || node.distance)
     : '0.5 km';
 
-  // Obtener SVG y borde exactos
-  const visual = getVehicleVisual(node);
+  let iconEmoji = '\u{1F6B6}'; // 🚶 Caminando
+  const rawCat = node.category || node.vehicle_type || node.vehicle || node.role;
+  const cat = normalizeMobility(rawCat);
+  const modality = node.serviceModality;
 
-  // Badge de modalidad opcional
-  let modalityBadge = '';
-  if (node.serviceModality === 'pasajeros') {
-    modalityBadge = `<span style="font-size:7.5px;background:rgba(245,158,11,0.2);color:#F59E0B;padding:0 3px;border-radius:3px;font-weight:900;border:0.5px solid rgba(245,158,11,0.5);flex-shrink:0;">Pas.</span>`;
-  } else if (node.serviceModality === 'envios') {
-    modalityBadge = `<span style="font-size:7.5px;background:rgba(59,130,246,0.2);color:#60A5FA;padding:0 3px;border-radius:3px;font-weight:900;border:0.5px solid rgba(59,130,246,0.5);flex-shrink:0;">Env.</span>`;
-  } else if (node.serviceModality === 'mixto') {
-    modalityBadge = `<span style="font-size:7.5px;background:rgba(16,185,129,0.2);color:#34D399;padding:0 3px;border-radius:3px;font-weight:900;border:0.5px solid rgba(16,185,129,0.5);flex-shrink:0;">Mix.</span>`;
+  if (cat === 'bicicleta') {
+    iconEmoji = '\u{1F6B2}'; // 🚲 Bicicleta
+  } else if (cat === 'motocicleta') {
+    iconEmoji = modality === 'pasajeros' ? '\u{1F6F5}' : modality === 'envios' ? '\u{1F4E6}' : '\u{1F3CD}\u{FE0F}'; // 🛵 : 📦 : 🏍️
+  } else if (cat === 'automovil') {
+    iconEmoji = modality === 'pasajeros' ? '\u{1F695}' : modality === 'envios' ? '\u{1F4E6}' : '\u{1F697}'; // 🚖 : 📦 : 🚗
+  } else if (cat === 'fletes') {
+    iconEmoji = '\u{1F69A}'; // 🚚 Flete / Camión
+  } else if (cat === 'negocios') {
+    iconEmoji = '\u{1F3EA}'; // 🏪 Comercio / Tienda
   }
 
-  // Color de borde y punto de reputación
-  let borderColor = visual.borderColor || '#10B981';
-  let repDotFill = '#10B981';
-  if (isBlocked) { borderColor = '#F43F5E'; repDotFill = '#F43F5E'; }
-  else if (isReported) { borderColor = '#F59E0B'; repDotFill = '#F59E0B'; }
+  let modalityBadge = '';
+  if (modality === 'pasajeros') {
+    modalityBadge = '<span title="Transporte de Pasajeros">\u{1F695}</span>';
+  } else if (modality === 'envios') {
+    modalityBadge = '<span title="Envíos y Paquetes">\u{1F4E6}</span>';
+  } else if (modality === 'mixto') {
+    modalityBadge = '<span title="Servicio Mixto">\u{1F504}</span>';
+  }
 
-  const repDot = `<svg width="7" height="7" viewBox="0 0 7 7" style="flex-shrink:0;display:block;"><circle cx="3.5" cy="3.5" r="3.5" fill="${repDotFill}"/></svg>`;
+  let borderColor = '#10B981';
+  let repIcon = '\u{1F7E2}'; // 🟢
+
+  if (isBlocked) {
+    borderColor = '#F43F5E';
+    repIcon = '\u{1F534}'; // 🔴
+  } else if (isReported) {
+    borderColor = '#F59E0B';
+    repIcon = '\u{1F7E1}'; // 🟡
+  }
 
   const bgNode = isDark ? '#0B132B' : '#FFFFFF';
   const textColor = isDark ? '#F1F5F9' : '#0F172A';
-  const labelBg = isDark ? '#070C1E' : '#FFFFFF';
   const scaleStyle = isSelected ? 'transform: scale(1.25); filter: drop-shadow(0 0 8px #F7931A);' : '';
 
   return L.divIcon({
     className: 'custom-peer-marker',
     html: `
       <div style="display:flex; flex-direction:column; align-items:center; cursor:pointer; ${scaleStyle}">
-        <!-- Tarjeta redondeada blanca con borde verde/categoría idéntica a las capturas -->
-        <div style="
-          background:${bgNode};
-          border:2.5px solid ${borderColor};
-          border-radius:14px;
-          padding:3px 8px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          box-shadow:0 3px 10px rgba(0,0,0,0.25);
-          min-width:34px;
-          height:30px;
-        ">
-          ${visual.html}
+        <div style="background:${bgNode}; border:2.5px solid ${borderColor}; border-radius:14px; padding:3px 7px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.3); font-size:16px; line-height:1;">
+          ${iconEmoji}
         </div>
-
-        <!-- Pastilla de información inferior idéntica a las capturas -->
-        <div style="
-          margin-top:2px;
-          background:${labelBg};
-          color:${textColor};
-          border:1px solid ${borderColor};
-          border-radius:6px;
-          padding:1px 6px;
-          font-size:9.5px;
-          font-weight:800;
-          white-space:nowrap;
-          box-shadow:0 2px 6px rgba(0,0,0,0.22);
-          display:flex;
-          align-items:center;
-          gap:3.5px;
-          max-width:140px;
-          overflow:hidden;
-        ">
-          ${repDot}
-          ${modalityBadge}
-          <span style="overflow:hidden;text-overflow:ellipsis;">${node.name || ''}</span>
-          ${node.locality ? `<span style="font-size:8px;opacity:0.9;color:${isDark ? '#38BDF8' : '#0284C7'};flex-shrink:0;">(${String(node.locality).slice(0,10)})</span>` : ''}
-          <span style="font-family:monospace;color:${isDark ? '#94A3B8' : '#64748B'};font-size:8.5px;flex-shrink:0;">(${kmDistance})</span>
+        <div style="margin-top:2px; background:${isDark ? '#070C1E' : '#FFFFFF'}; color:${textColor}; border:1px solid ${borderColor}; border-radius:6px; padding:1px 6px; font-size:9.5px; font-weight:800; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.25); display:flex; align-items:center; gap:3px;">
+          <span>${repIcon}</span>
+          ${modalityBadge ? `<span>${modalityBadge}</span>` : ''}
+          <span>${node.name || ''}</span>
+          ${node.locality ? `<span style="font-size:8px; opacity:0.9; color:${isDark ? '#38BDF8' : '#0284C7'};">(${node.locality})</span>` : ''}
+          <span style="font-family:monospace; color:${isDark ? '#94A3B8' : '#64748B'}; font-size:8.5px;">(${kmDistance})</span>
         </div>
       </div>
     `,
-    iconSize: [120, 52],
-    iconAnchor: [60, 48]
+    iconSize: [115, 52],
+    iconAnchor: [57, 48]
   });
 };
 
@@ -310,36 +227,35 @@ const createAuctionMarkerIcon = (req, isSelected, isDark) => {
   const textColor = isDark ? '#F1F5F9' : '#0F172A';
   const borderColor = '#F59E0B';
   const offersCount = req.offers?.length || 0;
-  const scaleStyle = isSelected ? 'transform:scale(1.22);filter:drop-shadow(0 0 10px #F59E0B);' : '';
+  const scaleStyle = isSelected ? 'transform: scale(1.22); filter: drop-shadow(0 0 10px #F59E0B);' : '';
   const scheduledTime = String(req.scheduledTime || 'Hoy').slice(0, 12);
   const locality = req.locality ? String(req.locality).slice(0, 14) : '';
   const fee = Number(req.estimatedFeeArs || 0).toLocaleString('es-AR');
+  const distance = req.distanceKm || '0.5 km';
 
   return L.divIcon({
     className: 'custom-auction-marker',
     html: `
-      <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;${scaleStyle}">
-        <div style="position:relative;display:flex;align-items:center;justify-content:center;">
-          <div style="position:absolute;width:36px;height:36px;border-radius:9999px;background:rgba(245,158,11,0.35);animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>
-          <div style="background:${bgNode};border:2.5px solid ${borderColor};border-radius:14px;padding:5px 8px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(245,158,11,0.4);position:relative;z-index:2;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
-              <path d="M16.5 9.4l-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-              <line x1="12" y1="22.08" x2="12" y2="12"/>
-            </svg>
+      <div style="display:flex; flex-direction:column; align-items:center; cursor:pointer; ${scaleStyle}">
+        <div style="position:relative; display:flex; align-items:center; justify-content:center;">
+          <!-- Pulso de radar ámbar animado -->
+          <div style="position:absolute; width:36px; height:36px; border-radius:9999px; background:rgba(245,158,11,0.35); animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>
+          <!-- Ícono de Paquete P2P Distintivo -->
+          <div style="background:${bgNode}; border:2.5px solid ${borderColor}; border-radius:14px; padding:3px 7px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(245,158,11,0.4); font-size:17px; line-height:1; position:relative; z-index:2;">
+            \u{1F4E6}
           </div>
           ${offersCount > 0 ? `
-            <div style="position:absolute;top:-5px;right:-8px;background:#10B981;color:#FFFFFF;font-size:8px;font-weight:900;border-radius:9999px;padding:1px 5px;border:1.5px solid #FFFFFF;z-index:3;box-shadow:0 2px 4px rgba(0,0,0,0.3);">
-              ${offersCount}
+            <div style="position:absolute; top:-6px; right:-8px; background:#10B981; color:#FFFFFF; font-size:8px; font-weight:900; border-radius:9999px; padding:1px 5px; border:1.5px solid #FFFFFF; z-index:3; box-shadow:0 2px 4px rgba(0,0,0,0.3);">
+              ${offersCount} cotiz.
             </div>
           ` : ''}
         </div>
-        <div style="margin-top:2px;background:${isDark ? '#070C1E' : '#FFFFFF'};color:${textColor};border:1.5px solid ${borderColor};border-radius:6px;padding:2px 6px;font-size:9px;font-weight:800;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;gap:3px;">
-          <span style="color:#F59E0B;">${scheduledTime}</span>
-          ${locality ? `<span style="font-size:7.5px;opacity:0.85;color:#38BDF8;font-weight:900;">(${locality})</span>` : ''}
-          <span style="font-family:monospace;color:#94A3B8;font-size:8px;">${req.distanceKm || ''}</span>
-          <span>-</span>
-          <span style="color:#10B981;font-family:monospace;">$${fee}</span>
+        <div style="margin-top:2px; background:${isDark ? '#070C1E' : '#FFFFFF'}; color:${textColor}; border:1.5px solid ${borderColor}; border-radius:6px; padding:2px 6px; font-size:9.5px; font-weight:800; white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,0.3); display:flex; align-items:center; gap:3px;">
+          <span style="color:#F59E0B;">⏰ ${scheduledTime}</span>
+          ${locality ? `<span style="font-size:7.5px; opacity:0.85; color:#38BDF8; font-weight:900;">(${locality})</span>` : ''}
+          <span style="font-family:monospace; color:#94A3B8; font-size:8.5px;">(${distance})</span>
+          <span>•</span>
+          <span style="color:#10B981; font-family:monospace;">$${fee}</span>
         </div>
       </div>
     `,
@@ -943,7 +859,7 @@ export default function MapaP2P(props) {
     { id: 'bicicleta', label: `Bicicleta (${countByCategory('bicicleta')})`, icon: Bike },
     { id: 'motocicleta', label: `Motos (${countByCategory('motocicleta')})`, icon: MotorcycleIcon },
     { id: 'automovil', label: `Autos (${countByCategory('automovil')})`, icon: Car },
-    { id: 'fletes', label: `Fletes (${countByCategory('fletes')})`, icon: Truck },
+    { id: 'fletes', label: `Fletes / Cargas (${countByCategory('fletes')})`, icon: Truck },
     { id: 'negocios', label: `Negocios (${countByCategory('negocios')})`, icon: Store }
   ];
 
