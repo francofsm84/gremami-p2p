@@ -97,68 +97,119 @@ const getNodeCoordinates = (node) => {
   return [Number(lat.toFixed(6)), Number(lng.toFixed(6))];
 };
 
-// Generador de Icono Leaflet Personalizado para Nodos / Prestadores
+// Mapa de SVG paths por categoria de movilidad (sin dependencia de emojis / fuentes del sistema)
+const MOBILITY_SVG = {
+  // Caminando — silueta peatonal
+  caminando: {
+    color: '#10B981',
+    path: 'M13 3a1 1 0 1 0-2 0 1 1 0 0 0 2 0zm-1 3a1 1 0 0 0-.894.553L9 10H7a1 1 0 0 0 0 2h2.764L12 8.236V21a1 1 0 0 0 2 0V14h1v7a1 1 0 0 0 2 0V10a1 1 0 0 0-1-1h-2.764L12 6z',
+    label: 'A pie'
+  },
+  // Bicicleta
+  bicicleta: {
+    color: '#F97316',
+    path: 'M5 20.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm14 0a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM5 17l4-8 3 3 3-5h4M12 12L9 9',
+    label: 'Bici'
+  },
+  // Motocicleta
+  motocicleta: {
+    color: '#EAB308',
+    path: 'M5 16H3a1 1 0 0 1-1-1v-1a4 4 0 0 1 4-4h.5M21 16h-2m-4-9h2l2 4H9l1-2h4M5 16a3 3 0 1 0 6 0 3 3 0 0 0-6 0zm8 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0z',
+    label: 'Moto'
+  },
+  // Automovil
+  automovil: {
+    color: '#3B82F6',
+    path: 'M5 17H3a2 2 0 0 1-2-2v-4l2-5h14l2 5v4a2 2 0 0 1-2 2h-2M5 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0zm10 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0z',
+    label: 'Auto'
+  },
+  // Fletes / Camion
+  fletes: {
+    color: '#8B5CF6',
+    path: 'M1 3h15v13H1zm15 5h4l3 3v5h-7V8zM6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm11 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+    label: 'Flete'
+  }
+};
+
+// Normaliza la categoria del nodo al enum canonico para buscar en MOBILITY_SVG
+const normalizeCategoryForIcon = (cat) => {
+  if (!cat) return 'caminando';
+  const c = String(cat).toLowerCase().trim();
+  if (c === 'caminando' || c === 'pie' || c === 'peatonal') return 'caminando';
+  if (c === 'bicicleta' || c === 'bici' || c === 'bike') return 'bicicleta';
+  if (c === 'motocicleta' || c === 'moto' || c === 'scooter') return 'motocicleta';
+  if (c === 'automovil' || c === 'auto' || c === 'remis' || c === 'taxi' || c === 'sedan' || c === 'car') return 'automovil';
+  if (c === 'fletes' || c === 'flete' || c === 'carga' || c === 'truck' || c === 'camion') return 'fletes';
+  return 'caminando'; // fallback seguro
+};
+
+// Generador de Icono Leaflet — SVG inline por categoria (sin emojis, sin dependencia de fuentes)
 const createPeerIcon = (node, isSelected, repStatus, formatDistanceKm, isDark) => {
   if (!node) return L.divIcon({ className: 'custom-peer-marker-empty' });
+
   const isBlocked = repStatus === 'blocked';
   const isReported = repStatus === 'reported';
   const kmDistance = typeof formatDistanceKm === 'function'
     ? formatDistanceKm(node.distanceMeters || node.distance)
-    : '0.5 km';
+    : '?';
 
-  let iconEmoji = '🚶';
-  if (node.category === 'bicicleta') iconEmoji = '🚲';
-  else if (node.category === 'motocicleta') {
-    iconEmoji = node.serviceModality === 'pasajeros' ? '🛵' : node.serviceModality === 'envios' ? '📦' : '🏍️';
-  } else if (node.category === 'automovil') {
-    iconEmoji = node.serviceModality === 'pasajeros' ? '🚖' : node.serviceModality === 'envios' ? '📦' : '🚗';
-  } else if (node.category === 'fletes') iconEmoji = '🚚';
-  else if (node.category === 'comercio') iconEmoji = '🏪';
+  // Determinar icono SVG por categoria canonica
+  const catKey = normalizeCategoryForIcon(node.category);
+  const mobility = MOBILITY_SVG[catKey] || MOBILITY_SVG.caminando;
+  const catColor = mobility.color;
+  const svgPath = mobility.path;
+  const catLabel = mobility.label;
 
-  let modalityBadge = '';
-  if (node.serviceModality === 'pasajeros') {
-    modalityBadge = '<span title="Transporte de Pasajeros">🚖</span>';
-  } else if (node.serviceModality === 'envios') {
-    modalityBadge = '<span title="Envíos y Paquetes">📦</span>';
-  } else if (node.serviceModality === 'mixto') {
-    modalityBadge = '<span title="Servicio Mixto">🔄</span>';
-  }
-
-  let borderColor = '#10B981';
-  let repIcon = '🟢';
-
+  // Colores de reputacion
+  let borderColor = catColor;
+  let repDot = `<circle cx="5" cy="5" r="4" fill="#10B981"/>`;
   if (isBlocked) {
     borderColor = '#F43F5E';
-    repIcon = '🔴';
+    repDot = `<circle cx="5" cy="5" r="4" fill="#F43F5E"/>`;
   } else if (isReported) {
     borderColor = '#F59E0B';
-    repIcon = '🟡';
+    repDot = `<circle cx="5" cy="5" r="4" fill="#F59E0B"/>`;
   }
+
+  // Modalidad: badge de texto simple (sin emoji)
+  let modalityText = '';
+  if (node.serviceModality === 'pasajeros') modalityText = 'Pas.';
+  else if (node.serviceModality === 'envios') modalityText = 'Env.';
+  else if (node.serviceModality === 'mixto') modalityText = 'Mix.';
 
   const bgNode = isDark ? '#0B132B' : '#FFFFFF';
   const textColor = isDark ? '#F1F5F9' : '#0F172A';
-  const scaleStyle = isSelected ? 'transform: scale(1.25); filter: drop-shadow(0 0 8px #F7931A);' : '';
+  const labelBg = isDark ? '#070C1E' : '#FFFFFF';
+  const scaleStyle = isSelected ? 'transform:scale(1.3);filter:drop-shadow(0 0 8px #F7931A);' : '';
+  const name = String(node.name || '').slice(0, 18);
+  const locality = node.locality ? String(node.locality).slice(0, 14) : '';
 
   return L.divIcon({
     className: 'custom-peer-marker',
     html: `
-      <div style="display:flex; flex-direction:column; align-items:center; cursor:pointer; ${scaleStyle}">
-        <div style="background:${bgNode}; border:2.5px solid ${borderColor}; border-radius:14px; padding:3px 7px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.3); font-size:16px;">
-          ${iconEmoji}
+      <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;${scaleStyle}">
+        <div style="background:${bgNode};border:2.5px solid ${borderColor};border-radius:14px;padding:5px 8px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.35);position:relative;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${catColor}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+            <path d="${svgPath}"/>
+          </svg>
+          <svg width="10" height="10" viewBox="0 0 10 10" style="position:absolute;top:-3px;right:-3px;display:block;">
+            ${repDot}
+          </svg>
         </div>
-        <div style="margin-top:2px; background:${isDark ? '#070C1E' : '#FFFFFF'}; color:${textColor}; border:1px solid ${borderColor}; border-radius:6px; padding:1px 6px; font-size:9.5px; font-weight:800; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.25); display:flex; align-items:center; gap:3px;">
-          <span>${repIcon}</span>
-          ${modalityBadge ? `<span>${modalityBadge}</span>` : ''}
-          <span>${node.name}</span>
-          ${node.locality ? `<span style="font-size:8px; opacity:0.9; color:${isDark ? '#38BDF8' : '#0284C7'};">(${node.locality})</span>` : ''}
-          <span style="font-family:monospace; color:${isDark ? '#94A3B8' : '#64748B'}; font-size:8.5px;">(${kmDistance})</span>
+        <div style="margin-top:3px;background:${labelBg};color:${textColor};border:1px solid ${borderColor};border-radius:6px;padding:1px 5px;font-size:9px;font-weight:800;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.25);display:flex;align-items:center;gap:3px;max-width:130px;overflow:hidden;">
+          <span style="color:${catColor};font-size:8px;flex-shrink:0;">[${catLabel}]</span>
+          <span style="overflow:hidden;text-overflow:ellipsis;">${name}</span>
+          ${locality ? `<span style="font-size:7.5px;opacity:0.7;color:#38BDF8;flex-shrink:0;">(${locality})</span>` : ''}
+          ${modalityText ? `<span style="font-size:7.5px;color:${catColor};flex-shrink:0;">${modalityText}</span>` : ''}
+          <span style="font-family:monospace;color:#94A3B8;font-size:8px;flex-shrink:0;">${kmDistance}</span>
         </div>
       </div>
     `,
-    iconSize: [115, 52],
-    iconAnchor: [57, 48]
+    iconSize: [130, 56],
+    iconAnchor: [65, 52]
   });
 };
+
 
 // Generador de Icono Leaflet Distintivo para el Usuario Actual ("📍 Tú / Tu Ubicación")
 const createUserIcon = (hasLiveGps, isDark) => {
@@ -176,12 +227,12 @@ const createUserIcon = (hasLiveGps, isDark) => {
             <div style="width:7px; height:7px; border-radius:9999px; background:#FFFFFF;"></div>
           </div>
         </div>
-        <!-- Tooltip distintivo "📍 Tú / Tu Ubicación" -->
+        <!-- Tooltip distintivo "Tu Ubicacion" -->
         <div style="margin-top:4px; background:${isDark ? '#0B132B' : '#0F172A'}; color:#60A5FA; border:1.5px solid #3B82F6; border-radius:9999px; padding:2px 9px; font-size:9.5px; font-weight:800; white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,0.5); display:flex; align-items:center; gap:4px;">
-          <span>📍</span>
-          <span style="color:#FFFFFF;">Tú / Tu Ubicación</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="#60A5FA" style="display:block;flex-shrink:0;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          <span style="color:#FFFFFF;">Tu Ubicacion</span>
           <span style="font-size:8px; padding:1px 4px; border-radius:4px; font-weight:900; background:${hasLiveGps ? 'rgba(16,185,129,0.25)' : 'rgba(245,158,11,0.25)'}; color:${hasLiveGps ? '#34D399' : '#FBBF24'};">
-            ${hasLiveGps ? 'GPS EN VIVO' : 'ALTA GRACIA'}
+            ${hasLiveGps ? 'GPS EN VIVO' : 'UBICACION'}
           </span>
         </div>
       </div>
@@ -198,36 +249,41 @@ const createAuctionMarkerIcon = (req, isSelected, isDark) => {
   const textColor = isDark ? '#F1F5F9' : '#0F172A';
   const borderColor = '#F59E0B';
   const offersCount = req.offers?.length || 0;
-  const scaleStyle = isSelected ? 'transform: scale(1.22); filter: drop-shadow(0 0 10px #F59E0B);' : '';
+  const scaleStyle = isSelected ? 'transform:scale(1.22);filter:drop-shadow(0 0 10px #F59E0B);' : '';
+  const scheduledTime = String(req.scheduledTime || 'Hoy').slice(0, 12);
+  const locality = req.locality ? String(req.locality).slice(0, 14) : '';
+  const fee = Number(req.estimatedFeeArs || 0).toLocaleString('es-AR');
 
   return L.divIcon({
     className: 'custom-auction-marker',
     html: `
-      <div style="display:flex; flex-direction:column; align-items:center; cursor:pointer; ${scaleStyle}">
-        <div style="position:relative; display:flex; align-items:center; justify-content:center;">
-          <!-- Pulso de radar ámbar animado -->
-          <div style="position:absolute; width:36px; height:36px; border-radius:9999px; background:rgba(245,158,11,0.35); animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>
-          <!-- Ícono de Paquete P2P Distintivo -->
-          <div style="background:${bgNode}; border:2.5px solid ${borderColor}; border-radius:14px; padding:3px 7px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(245,158,11,0.4); font-size:17px; position:relative; z-index:2;">
-            📦
+      <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;${scaleStyle}">
+        <div style="position:relative;display:flex;align-items:center;justify-content:center;">
+          <div style="position:absolute;width:36px;height:36px;border-radius:9999px;background:rgba(245,158,11,0.35);animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>
+          <div style="background:${bgNode};border:2.5px solid ${borderColor};border-radius:14px;padding:5px 8px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(245,158,11,0.4);position:relative;z-index:2;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+              <path d="M16.5 9.4l-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+              <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
           </div>
           ${offersCount > 0 ? `
-            <div style="position:absolute; -top:6px; -right:8px; background:#10B981; color:#FFFFFF; font-size:8px; font-weight:900; border-radius:9999px; padding:1px 5px; border:1.5px solid #FFFFFF; z-index:3; box-shadow:0 2px 4px rgba(0,0,0,0.3);">
-              ${offersCount} cotiz.
+            <div style="position:absolute;top:-5px;right:-8px;background:#10B981;color:#FFFFFF;font-size:8px;font-weight:900;border-radius:9999px;padding:1px 5px;border:1.5px solid #FFFFFF;z-index:3;box-shadow:0 2px 4px rgba(0,0,0,0.3);">
+              ${offersCount}
             </div>
           ` : ''}
         </div>
-        <div style="margin-top:2px; background:${isDark ? '#070C1E' : '#FFFFFF'}; color:${textColor}; border:1.5px solid ${borderColor}; border-radius:6px; padding:2px 6px; font-size:9.5px; font-weight:800; white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,0.3); display:flex; align-items:center; gap:3px;">
-          <span style="color:#F59E0B;">⏰ ${req.scheduledTime || 'Hoy'}</span>
-          ${req.locality ? `<span style="font-size:8px; opacity:0.9; color:${isDark ? '#38BDF8' : '#0284C7'}; font-weight:900;">(${req.locality})</span>` : ''}
-          <span style="font-family:monospace; color:${isDark ? '#94A3B8' : '#64748B'}; font-size:8.5px;">(${req.distanceKm || '0.5 km'})</span>
-          <span>•</span>
-          <span style="color:#10B981; font-family:monospace;">$${Number(req.estimatedFeeArs || 0).toLocaleString('es-AR')}</span>
+        <div style="margin-top:2px;background:${isDark ? '#070C1E' : '#FFFFFF'};color:${textColor};border:1.5px solid ${borderColor};border-radius:6px;padding:2px 6px;font-size:9px;font-weight:800;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;gap:3px;">
+          <span style="color:#F59E0B;">${scheduledTime}</span>
+          ${locality ? `<span style="font-size:7.5px;opacity:0.85;color:#38BDF8;font-weight:900;">(${locality})</span>` : ''}
+          <span style="font-family:monospace;color:#94A3B8;font-size:8px;">${req.distanceKm || ''}</span>
+          <span>-</span>
+          <span style="color:#10B981;font-family:monospace;">$${fee}</span>
         </div>
       </div>
     `,
-    iconSize: [125, 56],
-    iconAnchor: [62, 50]
+    iconSize: [130, 58],
+    iconAnchor: [65, 52]
   });
 };
 
