@@ -118,61 +118,156 @@ export const normalizeMobility = (raw) => {
 
 const normalizeCategoryForIcon = normalizeMobility;
 
-// SVG paths por categoria — graficos vectoriales precisos segun especificacion visual
+// SVG paths por categoria — graficos vectoriales precisos con RELLENO (fill) ilustrativo segun especificacion
 const VEHICLE_SVG = {
-  // Caminando: SVG de silueta de peaton/persona en color verde esmeralda
+  // 1. Caminando: SVG de peaton erguido con relleno VERDE (#10B981)
   caminando: {
     color: '#10B981',
     borderColor: '#10B981',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="2.2"/><path d="m9 20 3-6-3-2V8h6v4l-2 2 2 6"/><path d="m6 17 3-3"/><path d="m14 16 3 3"/></svg>`
+    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="4" r="2.2" fill="#10B981"/>
+      <path d="M13.8 8.2c-.4-.5-1.1-.8-1.8-.8s-1.4.3-1.8.8l-2.7 3.3c-.3.4-.2 1 .2 1.3.4.3 1 .2 1.3-.2l1.7-2.1v4.7l-2.4 4.8c-.3.5 0 1.1.5 1.3.5.3 1.1 0 1.3-.5l2.4-4.8 2.4 4.8c.2.4.7.7 1.2.7.2 0 .4 0 .6-.1.5-.3.7-.9.5-1.4l-2.4-4.8V10.6l1.7 2.1c.2.3.6.4.9.4.1 0 .3 0 .4-.1.4-.3.5-.9.2-1.3l-2.6-3.5z" fill="#10B981"/>
+    </svg>`
   },
-  // Bicicleta: SVG vectorial claro de bicicleta en color negro/verde
+
+  // 2. Bicicleta: SVG ilustrativo de bicicleta con cuadro y ruedas en color NARANJA (#F97316)
   bicicleta: {
-    color: '#0F172A',
-    borderColor: '#10B981',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5" stroke="#10B981"/><circle cx="5.5" cy="17.5" r="3.5" stroke="#10B981"/><circle cx="15" cy="5" r="1.2" fill="#0F172A"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>`
+    color: '#F97316',
+    borderColor: '#F97316',
+    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <!-- Ruedas naranja con llanta gruesa -->
+      <circle cx="5.5" cy="16.5" r="3.5" stroke="#F97316" stroke-width="2" fill="#FFEDD5"/>
+      <circle cx="5.5" cy="16.5" r="1.2" fill="#EA580C"/>
+      <circle cx="18.5" cy="16.5" r="3.5" stroke="#F97316" stroke-width="2" fill="#FFEDD5"/>
+      <circle cx="18.5" cy="16.5" r="1.2" fill="#EA580C"/>
+      <!-- Cuadro y manubrio naranja -->
+      <path d="M5.5 16.5l4-6.5h4.5l4.5 6.5" stroke="#F97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M9.5 10l2.5 6.5" stroke="#EA580C" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M14 10l-2 6.5" stroke="#EA580C" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M12.5 7.5h2.8l1.7 2.5" stroke="#C2410C" stroke-width="2" stroke-linecap="round"/>
+      <!-- Asiento -->
+      <path d="M8.5 8.5h3" stroke="#7C2D12" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>`
   },
-  // Motocicleta — pasajeros
-  motocicleta_pasajeros: {
-    color: '#F59E0B',
-    borderColor: '#F59E0B',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="16" r="3"/><circle cx="19" cy="16" r="3"/><path d="M8 16h4l2-4h3l1.5 2"/><path d="M10 9l2.5 3h3.5"/><circle cx="10" cy="7" r="1.2" fill="#F59E0B"/></svg>`
-  },
-  // Motocicleta: SVG vectorial claro de moto
+
+  // 3. Motocicleta: SVG ilustrativo de moto con chasis en AMARILLO/NARANJA (#EAB308 / #F59E0B)
   motocicleta: {
     color: '#EAB308',
     borderColor: '#EAB308',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EAB308" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="16" r="3"/><circle cx="19" cy="16" r="3"/><path d="M8 16h4l2-4h3l1.5 2"/><path d="M10 9l2.5 3h3.5"/><circle cx="10" cy="7" r="1.2" fill="#EAB308"/></svg>`
+    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <!-- Ruedas -->
+      <circle cx="5" cy="16.5" r="3.5" stroke="#334155" stroke-width="2" fill="#F1F5F9"/>
+      <circle cx="5" cy="16.5" r="1.3" fill="#EAB308"/>
+      <circle cx="19" cy="16.5" r="3.5" stroke="#334155" stroke-width="2" fill="#F1F5F9"/>
+      <circle cx="19" cy="16.5" r="1.3" fill="#EAB308"/>
+      <!-- Chasis amarillo relleno -->
+      <path d="M8 16.5h3.5l3-4h3l1.5 2" stroke="#CA8A04" stroke-width="2" stroke-linecap="round"/>
+      <path d="M10 9.5l3.5 3h4l-1-2.5h-4.5z" fill="#EAB308" stroke="#CA8A04" stroke-width="1"/>
+      <!-- Asiento y manubrio -->
+      <path d="M8 12h3.5" stroke="#1E293B" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M15.5 8h2l.5 2" stroke="#CA8A04" stroke-width="1.8" stroke-linecap="round"/>
+      <circle cx="17.5" cy="7.5" r="1" fill="#EAB308"/>
+    </svg>`
   },
-  // Automovil — pasajeros
-  automovil_pasajeros: {
-    color: '#60A5FA',
-    borderColor: '#3B82F6',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2.2"/><path d="M9.2 17h5.6"/><circle cx="17" cy="17" r="2.2"/></svg>`
+
+  // Motocicleta variante pasajeros
+  motocicleta_pasajeros: {
+    color: '#F59E0B',
+    borderColor: '#F59E0B',
+    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <circle cx="5" cy="16.5" r="3.5" stroke="#334155" stroke-width="2" fill="#FEF3C7"/>
+      <circle cx="5" cy="16.5" r="1.3" fill="#F59E0B"/>
+      <circle cx="19" cy="16.5" r="3.5" stroke="#334155" stroke-width="2" fill="#FEF3C7"/>
+      <circle cx="19" cy="16.5" r="1.3" fill="#F59E0B"/>
+      <path d="M8 16.5h3.5l3-4h3l1.5 2" stroke="#D97706" stroke-width="2" stroke-linecap="round"/>
+      <path d="M9 10l3.5 2.5h4.5l-1.2-2.5H11z" fill="#F59E0B" stroke="#D97706" stroke-width="1"/>
+      <path d="M7.5 12h4" stroke="#1E293B" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="11" cy="7.5" r="1.3" fill="#F59E0B"/>
+      <circle cx="15" cy="7.5" r="1.3" fill="#F59E0B"/>
+    </svg>`
   },
-  // Automovil — envios
-  automovil_envios: {
-    color: '#3B82F6',
-    borderColor: '#3B82F6',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2.2"/><path d="M9.2 17h5.6"/><circle cx="17" cy="17" r="2.2"/></svg>`
-  },
-  // Automovil: SVG vectorial claro de auto de perfil
+
+  // 4. Automovil: SVG de auto de perfil en color AZUL (#3B82F6) con carrocería rellena
   automovil: {
     color: '#3B82F6',
     borderColor: '#3B82F6',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2.2"/><path d="M9.2 17h5.6"/><circle cx="17" cy="17" r="2.2"/></svg>`
+    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <!-- Carroceria rellena en azul -->
+      <path d="M3 14.5c0-.8.6-1.5 1.4-1.6l2.3-.5 2.1-3.6C9.2 8.3 9.8 8 10.5 8h4.8c.7 0 1.3.4 1.7 1l1.8 3.3 2.2.4c.6.1 1 .6 1 1.3v2c0 .6-.4 1-1 1h-1.2a3 3 0 0 1-5.6 0h-4.4a3 3 0 0 1-5.6 0H3c-.6 0-1-.4-1-1v-1.5z" fill="#3B82F6" stroke="#1D4ED8" stroke-width="1"/>
+      <!-- Ventanillas claras -->
+      <path d="M9.8 9.5l-1.4 2.5h3.6V9.5H9.8zm3.6 0v2.5h3.2l-1.3-2.5h-1.9z" fill="#DBEAFE"/>
+      <!-- Ruedas -->
+      <circle cx="7" cy="17" r="2.3" fill="#1E293B" stroke="#FFFFFF" stroke-width="1"/>
+      <circle cx="7" cy="17" r="0.9" fill="#94A3B8"/>
+      <circle cx="17" cy="17" r="2.3" fill="#1E293B" stroke="#FFFFFF" stroke-width="1"/>
+      <circle cx="17" cy="17" r="0.9" fill="#94A3B8"/>
+    </svg>`
   },
-  // Fletes: SVG de camion de carga/reparto (color rojo/naranja dentro del circulo verde)
+
+  automovil_pasajeros: {
+    color: '#3B82F6',
+    borderColor: '#3B82F6',
+    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M3 14.5c0-.8.6-1.5 1.4-1.6l2.3-.5 2.1-3.6C9.2 8.3 9.8 8 10.5 8h4.8c.7 0 1.3.4 1.7 1l1.8 3.3 2.2.4c.6.1 1 .6 1 1.3v2c0 .6-.4 1-1 1h-1.2a3 3 0 0 1-5.6 0h-4.4a3 3 0 0 1-5.6 0H3c-.6 0-1-.4-1-1v-1.5z" fill="#2563EB" stroke="#1E40AF" stroke-width="1"/>
+      <path d="M9.8 9.5l-1.4 2.5h3.6V9.5H9.8zm3.6 0v2.5h3.2l-1.3-2.5h-1.9z" fill="#BFDBFE"/>
+      <!-- Cartel remis/taxi arriba -->
+      <rect x="11" y="6.5" width="3" height="1.5" rx="0.5" fill="#FBBF24"/>
+      <circle cx="7" cy="17" r="2.3" fill="#1E293B" stroke="#FFFFFF" stroke-width="1"/>
+      <circle cx="7" cy="17" r="0.9" fill="#94A3B8"/>
+      <circle cx="17" cy="17" r="2.3" fill="#1E293B" stroke="#FFFFFF" stroke-width="1"/>
+      <circle cx="17" cy="17" r="0.9" fill="#94A3B8"/>
+    </svg>`
+  },
+
+  automovil_envios: {
+    color: '#3B82F6',
+    borderColor: '#3B82F6',
+    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M3 14.5c0-.8.6-1.5 1.4-1.6l2.3-.5 2.1-3.6C9.2 8.3 9.8 8 10.5 8h4.8c.7 0 1.3.4 1.7 1l1.8 3.3 2.2.4c.6.1 1 .6 1 1.3v2c0 .6-.4 1-1 1h-1.2a3 3 0 0 1-5.6 0h-4.4a3 3 0 0 1-5.6 0H3c-.6 0-1-.4-1-1v-1.5z" fill="#3B82F6" stroke="#1D4ED8" stroke-width="1"/>
+      <path d="M9.8 9.5l-1.4 2.5h3.6V9.5H9.8zm3.6 0v2.5h3.2l-1.3-2.5h-1.9z" fill="#DBEAFE"/>
+      <circle cx="7" cy="17" r="2.3" fill="#1E293B" stroke="#FFFFFF" stroke-width="1"/>
+      <circle cx="7" cy="17" r="0.9" fill="#94A3B8"/>
+      <circle cx="17" cy="17" r="2.3" fill="#1E293B" stroke="#FFFFFF" stroke-width="1"/>
+      <circle cx="17" cy="17" r="0.9" fill="#94A3B8"/>
+    </svg>`
+  },
+
+  // 5. Fletes / Cargas: SVG de camioneta/camion con carroceria en ROJO (#EF4444) brillante
   fletes: {
     color: '#EF4444',
-    borderColor: '#10B981',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18.5" r="2.2"/><circle cx="7" cy="18.5" r="2.2"/></svg>`
+    borderColor: '#EF4444',
+    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <!-- Caja de carga trasera roja -->
+      <rect x="2" y="7.5" width="11" height="8.5" rx="1" fill="#EF4444" stroke="#B91C1C" stroke-width="1"/>
+      <line x1="2" y1="11.5" x2="13" y2="11.5" stroke="#FFFFFF" stroke-width="0.8" opacity="0.6"/>
+      <!-- Cabina delantera roja -->
+      <path d="M13 10.5h3.5l2.5 3v2.5a1 1 0 0 1-1 1H13v-6.5z" fill="#DC2626" stroke="#991B1B" stroke-width="1"/>
+      <!-- Parabrisas / Ventanilla blanco/celeste -->
+      <path d="M14 11.5h2.2l1.6 2H14v-2z" fill="#FEF2F2"/>
+      <!-- Ruedas -->
+      <circle cx="6" cy="17.5" r="2.5" fill="#1E293B" stroke="#FFFFFF" stroke-width="1"/>
+      <circle cx="6" cy="17.5" r="1" fill="#94A3B8"/>
+      <circle cx="17" cy="17.5" r="2.5" fill="#1E293B" stroke="#FFFFFF" stroke-width="1"/>
+      <circle cx="17" cy="17.5" r="1" fill="#94A3B8"/>
+    </svg>`
   },
-  // Negocios: SVG de tienda/comercio en color rosa/fucsia
+
+  // 6. Negocios / Comercios: SVG de fachada de tienda/comercio con techo/fachada en ROSA/FUCSIA (#EC4899)
   negocios: {
     color: '#EC4899',
     borderColor: '#EC4899',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 7 4-4h12l4 4"/><path d="M4 11v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9"/><path d="M9 22v-6h6v6"/><path d="M2 7h20"/></svg>`
+    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <!-- Toldo a rayas rosa/blanco -->
+      <path d="M3 8.5h18l-1.5-4.5H4.5L3 8.5z" fill="#EC4899" stroke="#BE185D" stroke-width="1"/>
+      <path d="M3 8.5c.8.8 2.2.8 3 0s2.2-.8 3 0 2.2.8 3 0 2.2-.8 3 0 2.2.8 3 0" fill="#F43F5E" stroke="#BE185D" stroke-width="0.8"/>
+      <!-- Fachada rosa claro / blanco -->
+      <rect x="4.5" y="9.5" width="15" height="10.5" rx="0.5" fill="#FDF2F8" stroke="#EC4899" stroke-width="1"/>
+      <!-- Puerta fucsia -->
+      <rect x="9.5" y="13" width="5" height="7" rx="0.5" fill="#DB2777"/>
+      <!-- Ventanal / Vidriera -->
+      <rect x="5.5" y="11.5" width="3" height="4" fill="#FBCFE8" stroke="#EC4899" stroke-width="0.8"/>
+      <rect x="15.5" y="11.5" width="3" height="4" fill="#FBCFE8" stroke="#EC4899" stroke-width="0.8"/>
+    </svg>`
   }
 };
 
@@ -194,6 +289,7 @@ const getVehicleSVG = (node) => {
   }
   if (catKey === 'fletes') return VEHICLE_SVG.fletes;
   if (catKey === 'negocios') return VEHICLE_SVG.negocios;
+  if (catKey === 'caminando') return VEHICLE_SVG.caminando;
   return VEHICLE_SVG.caminando;
 };
 
