@@ -97,75 +97,92 @@ const getNodeCoordinates = (node) => {
   return [Number(lat.toFixed(6)), Number(lng.toFixed(6))];
 };
 
-// SVG paths por categoria — equivalentes vectoriales de los emojis originales
-// caminando=persona, bicicleta=bici, motocicleta=moto, automovil=auto, fletes=camion
-const VEHICLE_SVG = {
-  // Persona caminando (equivalente a emoji 🚶)
-  caminando: {
-    color: '#10B981',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7l-2 5h4l-2-5z"/><path d="M10 12l-1 5"/><path d="M14 12l1 5"/><path d="M9 22l1.5-4"/><path d="M15 22l-1.5-4"/></svg>`
-  },
-  // Bicicleta (equivalente a emoji 🚲)
-  bicicleta: {
-    color: '#F97316',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M8 17.5h5.5l3-5.5m-11 0l3 5.5"/><path d="M14 7h2l2.5 5.5"/><circle cx="14" cy="7" r="1"/></svg>`
-  },
-  // Motocicleta — pasajeros (equivalente a emoji 🛵)
-  motocicleta_pasajeros: {
-    color: '#F59E0B',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="M8 17h3.5l1.5-4h3l1-2h2"/><path d="M11.5 13L13 8h2"/></svg>`
-  },
-  // Motocicleta — envios/mixto (equivalente a emoji 🏍️)
-  motocicleta: {
-    color: '#EAB308',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EAB308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="M8 17h3.5l1.5-4h3l1-2h2"/><path d="M11.5 13L13 8h2"/><rect x="14" y="6" width="4" height="3" rx="1"/></svg>`
-  },
-  // Auto sedán — pasajeros (equivalente a emoji 🚖)
-  automovil_pasajeros: {
-    color: '#60A5FA',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3a1 1 0 0 1-1-1v-4l3-7h12l3 7v4a1 1 0 0 1-1 1h-2"/><circle cx="7.5" cy="17" r="2.5"/><circle cx="16.5" cy="17" r="2.5"/><path d="M5 9h14"/></svg>`
-  },
-  // Auto utilitario — envios (equivalente a emoji 📦+🚗)
-  automovil_envios: {
-    color: '#3B82F6',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="14" height="10" rx="1"/><path d="M16 10h4l2 3v4h-6V10z"/><circle cx="6.5" cy="17" r="2"/><circle cx="19.5" cy="17" r="2"/></svg>`
-  },
-  // Auto mixto / default (equivalente a emoji 🚗)
-  automovil: {
-    color: '#3B82F6',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3a1 1 0 0 1-1-1v-4l3-7h12l3 7v4a1 1 0 0 1-1 1h-2"/><circle cx="7.5" cy="17" r="2.5"/><circle cx="16.5" cy="17" r="2.5"/></svg>`
-  },
-  // Camion de flete (equivalente a emoji 🚚)
-  fletes: {
-    color: '#8B5CF6',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="14" height="13" rx="1"/><path d="M15 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`
-  },
-  // Negocio / Comercio / Tienda (equivalente a emoji 🏪)
-  negocios: {
-    color: '#EC4899',
-    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`
-  }
-};
-
-// Normaliza la categoria del nodo al enum canonico para el icono del pin
-// (funcion pura a nivel de modulo — no depende del componente)
-const normalizeCategoryForIcon = (cat) => {
-  if (!cat) return 'caminando';
-  const c = String(cat).toLowerCase().trim();
-  if (c === 'caminando' || c === 'pie' || c === 'peatonal' || c.includes('camin') || c.includes('walk')) return 'caminando';
-  if (c === 'bicicleta' || c === 'bici' || c.includes('bici') || c.includes('bike')) return 'bicicleta';
-  if (c === 'motocicleta' || c === 'moto' || c.includes('moto') || c.includes('scooter')) return 'motocicleta';
-  if (c === 'automovil' || c === 'auto' || c === 'remis' || c === 'taxi' || c.includes('auto') || c.includes('car')) return 'automovil';
-  if (c === 'fletes' || c === 'flete' || c === 'carga' || c.includes('flete') || c.includes('truck') || c.includes('carg')) return 'fletes';
-  if (c === 'negocios' || c === 'comercio' || c === 'tienda' || c === 'store' || c.includes('negoc') || c.includes('comerc') || c.includes('shop')) return 'negocios';
+// Normalizador canonico universal de movilidad y categorias
+export const normalizeMobility = (raw) => {
+  if (!raw) return 'caminando';
+  const c = String(raw).toLowerCase().trim();
+  // 1. Bicicleta
+  if (c.includes('bici') || c.includes('bike') || c.includes('ciclo')) return 'bicicleta';
+  // 2. Motocicleta / Moto
+  if (c.includes('moto') || c.includes('scooter') || c.includes('vespa') || c.includes('ciclomotor')) return 'motocicleta';
+  // 3. Automovil / Auto / Remis / Taxi
+  if (c.includes('auto') || c.includes('car') || c.includes('remis') || c.includes('taxi') || c.includes('sedan') || c.includes('sedán') || c.includes('vehiculo')) return 'automovil';
+  // 4. Fletes / Cargas / Camion / Utilitario
+  if (c.includes('flete') || c.includes('truck') || c.includes('carga') || c.includes('camion') || c.includes('camión') || c.includes('pick') || c.includes('furgon') || c.includes('furgón')) return 'fletes';
+  // 5. Negocios / Comercios / Tiendas
+  if (c.includes('negoc') || c.includes('comerc') || c.includes('tienda') || c.includes('store') || c.includes('shop') || c.includes('local') || c.includes('mostrador')) return 'negocios';
+  // 6. Peatonal / Caminando / A pie
+  if (c.includes('camin') || c.includes('pie') || c.includes('walk') || c.includes('peaton') || c.includes('mochila')) return 'caminando';
   return 'caminando';
 };
 
-// Selecciona el SVG correcto segun categoria + modalidad (misma logica que los emojis originales)
+const normalizeCategoryForIcon = normalizeMobility;
+
+// SVG paths por categoria — graficos vectoriales precisos segun especificacion visual
+const VEHICLE_SVG = {
+  // Caminando: SVG de silueta de peaton/persona en color verde esmeralda
+  caminando: {
+    color: '#10B981',
+    borderColor: '#10B981',
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="2.2"/><path d="m9 20 3-6-3-2V8h6v4l-2 2 2 6"/><path d="m6 17 3-3"/><path d="m14 16 3 3"/></svg>`
+  },
+  // Bicicleta: SVG vectorial claro de bicicleta en color negro/verde
+  bicicleta: {
+    color: '#0F172A',
+    borderColor: '#10B981',
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5" stroke="#10B981"/><circle cx="5.5" cy="17.5" r="3.5" stroke="#10B981"/><circle cx="15" cy="5" r="1.2" fill="#0F172A"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>`
+  },
+  // Motocicleta — pasajeros
+  motocicleta_pasajeros: {
+    color: '#F59E0B',
+    borderColor: '#F59E0B',
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="16" r="3"/><circle cx="19" cy="16" r="3"/><path d="M8 16h4l2-4h3l1.5 2"/><path d="M10 9l2.5 3h3.5"/><circle cx="10" cy="7" r="1.2" fill="#F59E0B"/></svg>`
+  },
+  // Motocicleta: SVG vectorial claro de moto
+  motocicleta: {
+    color: '#EAB308',
+    borderColor: '#EAB308',
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EAB308" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="16" r="3"/><circle cx="19" cy="16" r="3"/><path d="M8 16h4l2-4h3l1.5 2"/><path d="M10 9l2.5 3h3.5"/><circle cx="10" cy="7" r="1.2" fill="#EAB308"/></svg>`
+  },
+  // Automovil — pasajeros
+  automovil_pasajeros: {
+    color: '#60A5FA',
+    borderColor: '#3B82F6',
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2.2"/><path d="M9.2 17h5.6"/><circle cx="17" cy="17" r="2.2"/></svg>`
+  },
+  // Automovil — envios
+  automovil_envios: {
+    color: '#3B82F6',
+    borderColor: '#3B82F6',
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2.2"/><path d="M9.2 17h5.6"/><circle cx="17" cy="17" r="2.2"/></svg>`
+  },
+  // Automovil: SVG vectorial claro de auto de perfil
+  automovil: {
+    color: '#3B82F6',
+    borderColor: '#3B82F6',
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2.2"/><path d="M9.2 17h5.6"/><circle cx="17" cy="17" r="2.2"/></svg>`
+  },
+  // Fletes: SVG de camion de carga/reparto (color rojo/naranja dentro del circulo verde)
+  fletes: {
+    color: '#EF4444',
+    borderColor: '#10B981',
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18.5" r="2.2"/><circle cx="7" cy="18.5" r="2.2"/></svg>`
+  },
+  // Negocios: SVG de tienda/comercio en color rosa/fucsia
+  negocios: {
+    color: '#EC4899',
+    borderColor: '#EC4899',
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 7 4-4h12l4 4"/><path d="M4 11v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9"/><path d="M9 22v-6h6v6"/><path d="M2 7h20"/></svg>`
+  }
+};
+
+// Selecciona el SVG correcto leyendo de manera unificada category || vehicle_type || vehicle || role
 const getVehicleSVG = (node) => {
-  const catKey = normalizeCategoryForIcon(node.category || node.vehicle_type || node.vehicle);
+  if (!node) return VEHICLE_SVG.caminando;
+  const raw = node.category || node.vehicle_type || node.vehicle || node.role;
+  const catKey = normalizeMobility(raw);
   const modality = node.serviceModality;
-  if (catKey === 'caminando') return VEHICLE_SVG.caminando;
+
   if (catKey === 'bicicleta') return VEHICLE_SVG.bicicleta;
   if (catKey === 'motocicleta') {
     return modality === 'pasajeros' ? VEHICLE_SVG.motocicleta_pasajeros : VEHICLE_SVG.motocicleta;
@@ -204,14 +221,13 @@ const createPeerIcon = (node, isSelected, repStatus, formatDistanceKm, isDark) =
     modalityBadge = `<span style="font-size:7.5px;background:rgba(16,185,129,0.2);color:#34D399;padding:0 3px;border-radius:3px;font-weight:900;border:0.5px solid rgba(16,185,129,0.5);flex-shrink:0;">Mix.</span>`;
   }
 
-  // Reputacion: borde + punto SVG (reemplaza emojis 🟢 / 🟡 / 🔴)
-  let borderColor = '#10B981';
+  // Borde a juego con la categoria o estado de reputacion
+  let borderColor = vehicle.borderColor || vehicleColor || '#10B981';
   let repDotFill = '#10B981';
   if (isBlocked) { borderColor = '#F43F5E'; repDotFill = '#F43F5E'; }
   else if (isReported) { borderColor = '#F59E0B'; repDotFill = '#F59E0B'; }
   const repDot = `<svg width="9" height="9" viewBox="0 0 9 9" style="flex-shrink:0;display:block;"><circle cx="4.5" cy="4.5" r="4" fill="${repDotFill}"/></svg>`;
 
-  const bgNode = isDark ? '#0B132B' : '#FFFFFF';
   const textColor = isDark ? '#F1F5F9' : '#0F172A';
   const labelBg = isDark ? '#070C1E' : '#FFFFFF';
   const scaleStyle = isSelected ? 'transform: scale(1.25); filter: drop-shadow(0 0 8px #F7931A);' : '';
@@ -220,13 +236,13 @@ const createPeerIcon = (node, isSelected, repStatus, formatDistanceKm, isDark) =
     className: 'custom-peer-marker',
     html: `
       <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;${scaleStyle}">
-        <!-- Burbuja circular del vehiculo -->
+        <!-- Burbuja circular blanca del vehiculo con borde de 3px a juego -->
         <div style="
           width:42px;height:42px;border-radius:9999px;
-          background:${isDark ? `rgba(${vehicleColor.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')},0.15)` : '#FFFFFF'};
+          background:#FFFFFF;
           border:3px solid ${borderColor};
           display:flex;align-items:center;justify-content:center;
-          box-shadow:0 4px 14px rgba(0,0,0,0.28),0 0 0 1px ${borderColor}22;
+          box-shadow:0 4px 14px rgba(0,0,0,0.25);
           position:relative;
         ">
           ${vehicleSvg}
@@ -257,7 +273,6 @@ const createPeerIcon = (node, isSelected, repStatus, formatDistanceKm, isDark) =
     iconAnchor: [60, 58]
   });
 };
-
 
 // Generador de Icono Leaflet Distintivo para el Usuario Actual ("📍 Tú / Tu Ubicación")
 const createUserIcon = (hasLiveGps, isDark) => {
@@ -708,21 +723,6 @@ export default function MapaP2P(props) {
   const [proposalFeeArs, setProposalFeeArs] = useState(3200);
   const [proposalFeeValens, setProposalFeeValens] = useState(1.2);
 
-  // ── ENUM de Movilidad Normalizado ────────────────────────────────────────────
-  // Convierte variantes del campo 'category' al enum canónico:
-  // 'caminando' | 'bicicleta' | 'motocicleta' | 'automovil' | 'fletes'
-  const normalizeMobility = useCallback((cat) => {
-    if (!cat) return 'caminando';
-    const c = String(cat).toLowerCase().trim();
-    if (c === 'caminando' || c === 'pie' || c === 'peatonal') return 'caminando';
-    if (c === 'bicicleta' || c === 'bici' || c === 'bike') return 'bicicleta';
-    if (c === 'motocicleta' || c === 'moto' || c === 'scooter') return 'motocicleta';
-    if (c === 'automovil' || c === 'auto' || c === 'remis' || c === 'taxi' || c === 'sedan' || c === 'car') return 'automovil';
-    if (c === 'fletes' || c === 'flete' || c === 'carga' || c === 'truck' || c === 'camion') return 'fletes';
-    if (c === 'negocios' || c === 'comercio' || c === 'tienda' || c === 'store' || c === 'shop') return 'negocios';
-    return c;
-  }, []);
-
   // ── FILTRADO REACTIVO REAL CON useMemo ──────────────────────────────────────
   // Nodos (cadetes) visibles segun categoria + modalidad + bloqueados
   const visibleNodes = useMemo(() => {
@@ -730,9 +730,10 @@ export default function MapaP2P(props) {
       const isBlocked = isUserBlocked(node.id);
       if (isBlocked && !showBlockedUsers) return false;
 
-      // Filtro por categoria principal (enum normalizado)
+      // Filtro por categoria principal (enum normalizado universal)
       if (selectedCategory !== 'all') {
-        const nodeCategory = normalizeMobility(node.category || node.vehicle_type || node.vehicle);
+        const rawNode = node.category || node.vehicle_type || node.vehicle || node.role;
+        const nodeCategory = normalizeMobility(rawNode);
         const filterCategory = normalizeMobility(selectedCategory);
         if (nodeCategory !== filterCategory) return false;
       }
@@ -750,7 +751,7 @@ export default function MapaP2P(props) {
 
       return true;
     });
-  }, [peers, selectedCategory, selectedModalityFilter, showBlockedUsers, isUserBlocked, normalizeMobility]);
+  }, [peers, selectedCategory, selectedModalityFilter, showBlockedUsers, isUserBlocked]);
 
   // Coordenadas de los nodos visibles para fitBounds (se recalcula con visibleNodes)
   const fitBoundsCoords = useMemo(() => {
@@ -934,7 +935,7 @@ export default function MapaP2P(props) {
       return matchesAuctionCategory(item, catId);
     }
     // Usar normalizeMobility para comparacion robusta (cubre 'comercio' → 'negocios', 'moto' → 'motocicleta', etc.)
-    return normalizeMobility(item.category || item.vehicle_type || item.vehicle) === normalizeMobility(catId);
+    return normalizeMobility(item.category || item.vehicle_type || item.vehicle || item.role) === normalizeMobility(catId);
   }).length;
 
   // 6 Categorias Principales + Negocios con contadores dinamicos
