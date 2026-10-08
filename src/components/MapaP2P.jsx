@@ -97,116 +97,123 @@ const getNodeCoordinates = (node) => {
   return [Number(lat.toFixed(6)), Number(lng.toFixed(6))];
 };
 
-// Mapa de SVG paths por categoria de movilidad (sin dependencia de emojis / fuentes del sistema)
-const MOBILITY_SVG = {
-  // Caminando — silueta peatonal
+// SVG paths por categoria — equivalentes vectoriales de los emojis originales
+// caminando=persona, bicicleta=bici, motocicleta=moto, automovil=auto, fletes=camion
+const VEHICLE_SVG = {
+  // Persona caminando (equivalente a emoji 🚶)
   caminando: {
     color: '#10B981',
-    path: 'M13 3a1 1 0 1 0-2 0 1 1 0 0 0 2 0zm-1 3a1 1 0 0 0-.894.553L9 10H7a1 1 0 0 0 0 2h2.764L12 8.236V21a1 1 0 0 0 2 0V14h1v7a1 1 0 0 0 2 0V10a1 1 0 0 0-1-1h-2.764L12 6z',
-    label: 'A pie'
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7l-2 5h4l-2-5z"/><path d="M10 12l-1 5"/><path d="M14 12l1 5"/><path d="M9 22l1.5-4"/><path d="M15 22l-1.5-4"/></svg>`
   },
-  // Bicicleta
+  // Bicicleta (equivalente a emoji 🚲)
   bicicleta: {
     color: '#F97316',
-    path: 'M5 20.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm14 0a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM5 17l4-8 3 3 3-5h4M12 12L9 9',
-    label: 'Bici'
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M8 17.5h5.5l3-5.5m-11 0l3 5.5"/><path d="M14 7h2l2.5 5.5"/><circle cx="14" cy="7" r="1"/></svg>`
   },
-  // Motocicleta
+  // Motocicleta — pasajeros (equivalente a emoji 🛵)
+  motocicleta_pasajeros: {
+    color: '#F59E0B',
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="M8 17h3.5l1.5-4h3l1-2h2"/><path d="M11.5 13L13 8h2"/></svg>`
+  },
+  // Motocicleta — envios/mixto (equivalente a emoji 🏍️)
   motocicleta: {
     color: '#EAB308',
-    path: 'M5 16H3a1 1 0 0 1-1-1v-1a4 4 0 0 1 4-4h.5M21 16h-2m-4-9h2l2 4H9l1-2h4M5 16a3 3 0 1 0 6 0 3 3 0 0 0-6 0zm8 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0z',
-    label: 'Moto'
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EAB308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="M8 17h3.5l1.5-4h3l1-2h2"/><path d="M11.5 13L13 8h2"/><rect x="14" y="6" width="4" height="3" rx="1"/></svg>`
   },
-  // Automovil
+  // Auto sedán — pasajeros (equivalente a emoji 🚖)
+  automovil_pasajeros: {
+    color: '#60A5FA',
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3a1 1 0 0 1-1-1v-4l3-7h12l3 7v4a1 1 0 0 1-1 1h-2"/><circle cx="7.5" cy="17" r="2.5"/><circle cx="16.5" cy="17" r="2.5"/><path d="M5 9h14"/></svg>`
+  },
+  // Auto utilitario — envios (equivalente a emoji 📦+🚗)
+  automovil_envios: {
+    color: '#3B82F6',
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="14" height="10" rx="1"/><path d="M16 10h4l2 3v4h-6V10z"/><circle cx="6.5" cy="17" r="2"/><circle cx="19.5" cy="17" r="2"/></svg>`
+  },
+  // Auto mixto / default (equivalente a emoji 🚗)
   automovil: {
     color: '#3B82F6',
-    path: 'M5 17H3a2 2 0 0 1-2-2v-4l2-5h14l2 5v4a2 2 0 0 1-2 2h-2M5 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0zm10 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0z',
-    label: 'Auto'
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3a1 1 0 0 1-1-1v-4l3-7h12l3 7v4a1 1 0 0 1-1 1h-2"/><circle cx="7.5" cy="17" r="2.5"/><circle cx="16.5" cy="17" r="2.5"/></svg>`
   },
-  // Fletes / Camion
+  // Camion de flete (equivalente a emoji 🚚)
   fletes: {
     color: '#8B5CF6',
-    path: 'M1 3h15v13H1zm15 5h4l3 3v5h-7V8zM6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm11 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
-    label: 'Flete'
+    svg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="14" height="13" rx="1"/><path d="M15 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`
   }
 };
 
-// Normaliza la categoria del nodo al enum canonico para buscar en MOBILITY_SVG
-const normalizeCategoryForIcon = (cat) => {
-  if (!cat) return 'caminando';
-  const c = String(cat).toLowerCase().trim();
-  if (c === 'caminando' || c === 'pie' || c === 'peatonal') return 'caminando';
-  if (c === 'bicicleta' || c === 'bici' || c === 'bike') return 'bicicleta';
-  if (c === 'motocicleta' || c === 'moto' || c === 'scooter') return 'motocicleta';
-  if (c === 'automovil' || c === 'auto' || c === 'remis' || c === 'taxi' || c === 'sedan' || c === 'car') return 'automovil';
-  if (c === 'fletes' || c === 'flete' || c === 'carga' || c === 'truck' || c === 'camion') return 'fletes';
-  return 'caminando'; // fallback seguro
+// Selecciona el SVG correcto segun categoria + modalidad (misma logica que los emojis originales)
+const getVehicleSVG = (node) => {
+  const catKey = normalizeCategoryForIcon(node.category);
+  const modality = node.serviceModality;
+  if (catKey === 'caminando') return VEHICLE_SVG.caminando;
+  if (catKey === 'bicicleta') return VEHICLE_SVG.bicicleta;
+  if (catKey === 'motocicleta') {
+    return modality === 'pasajeros' ? VEHICLE_SVG.motocicleta_pasajeros : VEHICLE_SVG.motocicleta;
+  }
+  if (catKey === 'automovil') {
+    if (modality === 'pasajeros') return VEHICLE_SVG.automovil_pasajeros;
+    if (modality === 'envios') return VEHICLE_SVG.automovil_envios;
+    return VEHICLE_SVG.automovil;
+  }
+  if (catKey === 'fletes') return VEHICLE_SVG.fletes;
+  return VEHICLE_SVG.caminando;
 };
 
-// Generador de Icono Leaflet — SVG inline por categoria (sin emojis, sin dependencia de fuentes)
+// Generador de Icono Leaflet — estetica original restaurada con SVG en lugar de emojis
 const createPeerIcon = (node, isSelected, repStatus, formatDistanceKm, isDark) => {
   if (!node) return L.divIcon({ className: 'custom-peer-marker-empty' });
-
   const isBlocked = repStatus === 'blocked';
   const isReported = repStatus === 'reported';
   const kmDistance = typeof formatDistanceKm === 'function'
     ? formatDistanceKm(node.distanceMeters || node.distance)
-    : '?';
+    : '0.5 km';
 
-  // Determinar icono SVG por categoria canonica
-  const catKey = normalizeCategoryForIcon(node.category);
-  const mobility = MOBILITY_SVG[catKey] || MOBILITY_SVG.caminando;
-  const catColor = mobility.color;
-  const svgPath = mobility.path;
-  const catLabel = mobility.label;
+  // Vehiculo SVG segun categoria y modalidad
+  const vehicle = getVehicleSVG(node);
+  const vehicleColor = vehicle.color;
+  const vehicleSvg = vehicle.svg;
 
-  // Colores de reputacion
-  let borderColor = catColor;
-  let repDot = `<circle cx="5" cy="5" r="4" fill="#10B981"/>`;
-  if (isBlocked) {
-    borderColor = '#F43F5E';
-    repDot = `<circle cx="5" cy="5" r="4" fill="#F43F5E"/>`;
-  } else if (isReported) {
-    borderColor = '#F59E0B';
-    repDot = `<circle cx="5" cy="5" r="4" fill="#F59E0B"/>`;
+  // Badge de modalidad — mini-pill de color (reemplaza a los emojis 🚖 / 📦 / 🔄)
+  let modalityBadge = '';
+  if (node.serviceModality === 'pasajeros') {
+    modalityBadge = `<span style="font-size:7.5px;background:rgba(245,158,11,0.2);color:#F59E0B;padding:0 3px;border-radius:3px;font-weight:900;border:0.5px solid rgba(245,158,11,0.5);flex-shrink:0;">Pas.</span>`;
+  } else if (node.serviceModality === 'envios') {
+    modalityBadge = `<span style="font-size:7.5px;background:rgba(59,130,246,0.2);color:#60A5FA;padding:0 3px;border-radius:3px;font-weight:900;border:0.5px solid rgba(59,130,246,0.5);flex-shrink:0;">Env.</span>`;
+  } else if (node.serviceModality === 'mixto') {
+    modalityBadge = `<span style="font-size:7.5px;background:rgba(16,185,129,0.2);color:#34D399;padding:0 3px;border-radius:3px;font-weight:900;border:0.5px solid rgba(16,185,129,0.5);flex-shrink:0;">Mix.</span>`;
   }
 
-  // Modalidad: badge de texto simple (sin emoji)
-  let modalityText = '';
-  if (node.serviceModality === 'pasajeros') modalityText = 'Pas.';
-  else if (node.serviceModality === 'envios') modalityText = 'Env.';
-  else if (node.serviceModality === 'mixto') modalityText = 'Mix.';
+  // Reputacion: borde + punto SVG (reemplaza emojis 🟢 / 🟡 / 🔴)
+  let borderColor = '#10B981';
+  let repDotFill = '#10B981';
+  if (isBlocked) { borderColor = '#F43F5E'; repDotFill = '#F43F5E'; }
+  else if (isReported) { borderColor = '#F59E0B'; repDotFill = '#F59E0B'; }
+  const repDot = `<svg width="9" height="9" viewBox="0 0 9 9" style="flex-shrink:0;display:block;"><circle cx="4.5" cy="4.5" r="4" fill="${repDotFill}"/></svg>`;
 
   const bgNode = isDark ? '#0B132B' : '#FFFFFF';
   const textColor = isDark ? '#F1F5F9' : '#0F172A';
   const labelBg = isDark ? '#070C1E' : '#FFFFFF';
-  const scaleStyle = isSelected ? 'transform:scale(1.3);filter:drop-shadow(0 0 8px #F7931A);' : '';
-  const name = String(node.name || '').slice(0, 18);
-  const locality = node.locality ? String(node.locality).slice(0, 14) : '';
+  const scaleStyle = isSelected ? 'transform: scale(1.25); filter: drop-shadow(0 0 8px #F7931A);' : '';
 
   return L.divIcon({
     className: 'custom-peer-marker',
     html: `
-      <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;${scaleStyle}">
-        <div style="background:${bgNode};border:2.5px solid ${borderColor};border-radius:14px;padding:5px 8px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.35);position:relative;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${catColor}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
-            <path d="${svgPath}"/>
-          </svg>
-          <svg width="10" height="10" viewBox="0 0 10 10" style="position:absolute;top:-3px;right:-3px;display:block;">
-            ${repDot}
-          </svg>
+      <div style="display:flex; flex-direction:column; align-items:center; cursor:pointer; ${scaleStyle}">
+        <div style="background:${bgNode}; border:2.5px solid ${borderColor}; border-radius:14px; padding:3px 7px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+          ${vehicleSvg}
         </div>
-        <div style="margin-top:3px;background:${labelBg};color:${textColor};border:1px solid ${borderColor};border-radius:6px;padding:1px 5px;font-size:9px;font-weight:800;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.25);display:flex;align-items:center;gap:3px;max-width:130px;overflow:hidden;">
-          <span style="color:${catColor};font-size:8px;flex-shrink:0;">[${catLabel}]</span>
-          <span style="overflow:hidden;text-overflow:ellipsis;">${name}</span>
-          ${locality ? `<span style="font-size:7.5px;opacity:0.7;color:#38BDF8;flex-shrink:0;">(${locality})</span>` : ''}
-          ${modalityText ? `<span style="font-size:7.5px;color:${catColor};flex-shrink:0;">${modalityText}</span>` : ''}
-          <span style="font-family:monospace;color:#94A3B8;font-size:8px;flex-shrink:0;">${kmDistance}</span>
+        <div style="margin-top:2px; background:${labelBg}; color:${textColor}; border:1px solid ${borderColor}; border-radius:6px; padding:1px 6px; font-size:9.5px; font-weight:800; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.25); display:flex; align-items:center; gap:3px;">
+          ${repDot}
+          ${modalityBadge}
+          <span>${node.name || ''}</span>
+          ${node.locality ? `<span style="font-size:8px; opacity:0.9; color:${isDark ? '#38BDF8' : '#0284C7'};">(${node.locality})</span>` : ''}
+          <span style="font-family:monospace; color:${isDark ? '#94A3B8' : '#64748B'}; font-size:8.5px;">(${kmDistance})</span>
         </div>
       </div>
     `,
-    iconSize: [130, 56],
-    iconAnchor: [65, 52]
+    iconSize: [115, 52],
+    iconAnchor: [57, 48]
   });
 };
 
