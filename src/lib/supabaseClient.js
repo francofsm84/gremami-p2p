@@ -181,10 +181,16 @@ export const authService = {
 
   // 1. Función de Inicio de Sesión / Registro con Google OAuth
   signInWithGoogle: async () => {
+    // Si estamos en cualquier dominio vercel.app, forzar estrictamente el dominio de produccion
+    const isVercel = typeof window !== 'undefined' && window.location.origin.includes('vercel.app');
+    const redirectTarget = isVercel 
+      ? 'https://gremami-p2p.vercel.app' 
+      : (typeof window !== 'undefined' ? window.location.origin : 'https://gremami-p2p.vercel.app');
+
     return await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined
+        redirectTo: redirectTarget
       }
     });
   },
