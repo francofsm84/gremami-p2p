@@ -23,21 +23,25 @@ export default function AuthModal({ isOpen, onClose }) {
 
   // Solicitar ubicación GPS en tiempo real
   const requestGpsLocation = () => {
-    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && 'geolocation' in navigator && navigator.geolocation) {
       setGpsStatus('locating');
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const coords = [Number(pos.coords.latitude.toFixed(6)), Number(pos.coords.longitude.toFixed(6))];
-          setUserCoords(coords);
-          setGpsStatus('granted');
-          showToast('📍 Ubicación GPS detectada con éxito', 'success');
-        },
-        (err) => {
-          console.warn('Permiso de GPS no concedido en registro:', err.message);
-          setGpsStatus('denied');
-        },
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
+      try {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const coords = [Number(pos.coords.latitude.toFixed(6)), Number(pos.coords.longitude.toFixed(6))];
+            setUserCoords(coords);
+            setGpsStatus('granted');
+            showToast('📍 Ubicación GPS detectada con éxito', 'success');
+          },
+          (err) => {
+            console.warn('Permiso de GPS no concedido en registro:', err.message);
+            setGpsStatus('denied');
+          },
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      } catch (e) {
+        setGpsStatus('denied');
+      }
     } else {
       setGpsStatus('denied');
     }

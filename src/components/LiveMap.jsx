@@ -195,15 +195,22 @@ export default function LiveMap({
       maximumAge: 4000
     };
 
-    // Obtener primera lectura rápida
-    navigator.geolocation.getCurrentPosition(handleSuccess, handleError, options);
+    try {
+      // Obtener primera lectura rápida
+      navigator.geolocation.getCurrentPosition(handleSuccess, handleError, options);
 
-    // Activar rastreo continuo en tiempo real
-    watchIdRef.current = navigator.geolocation.watchPosition(handleSuccess, handleError, options);
+      // Activar rastreo continuo en tiempo real
+      watchIdRef.current = navigator.geolocation.watchPosition(handleSuccess, handleError, options);
+    } catch (e) {
+      console.warn('LiveMap: Excepción al invocar GPS:', e);
+      setGpsStatus('denied');
+    }
 
     return () => {
-      if (watchIdRef.current !== null && 'geolocation' in navigator) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
+      if (watchIdRef.current !== null && typeof navigator !== 'undefined' && navigator.geolocation) {
+        try {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+        } catch (e) {}
       }
     };
   }, [showUserLocation, isFollowing, onLocationChange]);
@@ -221,18 +228,22 @@ export default function LiveMap({
     if (userLocation) {
       setMapCenter([...userLocation]);
       setIsFollowing(true);
-    } else if ('geolocation' in navigator) {
+    } else if (typeof navigator !== 'undefined' && 'geolocation' in navigator && navigator.geolocation) {
       setGpsStatus('locating');
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const coords = [pos.coords.latitude, pos.coords.longitude];
-          setUserLocation(coords);
-          setMapCenter(coords);
-          setGpsStatus('active');
-        },
-        () => setGpsStatus('denied'),
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
+      try {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const coords = [pos.coords.latitude, pos.coords.longitude];
+            setUserLocation(coords);
+            setMapCenter(coords);
+            setGpsStatus('active');
+          },
+          () => setGpsStatus('denied'),
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      } catch (e) {
+        setGpsStatus('denied');
+      }
     }
   };
 

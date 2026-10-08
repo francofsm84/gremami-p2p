@@ -503,21 +503,25 @@ export default function MapaP2P(props) {
   }, [userGpsCoords, appHasLiveGps]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserCoords([latitude, longitude]);
-          setHasLiveGps(true);
-        },
-        (error) => {
-          console.warn('Geolocalización no disponible o permiso denegado:', error.message);
-          if (!userGpsCoords) {
-            setUserCoords(ALTA_GRACIA_CENTER);
-          }
-        },
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
-      );
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && 'geolocation' in navigator && navigator.geolocation) {
+      try {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setUserCoords([latitude, longitude]);
+            setHasLiveGps(true);
+          },
+          (error) => {
+            console.warn('Geolocalización no disponible o permiso denegado:', error.message);
+            if (!userGpsCoords) {
+              setUserCoords(ALTA_GRACIA_CENTER);
+            }
+          },
+          { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+        );
+      } catch (e) {
+        console.warn('Error capturando GPS en MapaP2P:', e);
+      }
     }
   }, []);
 
@@ -610,15 +614,17 @@ export default function MapaP2P(props) {
 
   const handleRecenter = () => {
     // Al presionar la mira GPS, intenta refrescar la posición real del usuario si es posible
-    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserCoords([latitude, longitude]);
-          setHasLiveGps(true);
-        },
-        () => {}
-      );
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && 'geolocation' in navigator && navigator.geolocation) {
+      try {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setUserCoords([latitude, longitude]);
+            setHasLiveGps(true);
+          },
+          () => {}
+        );
+      } catch (e) {}
     }
     setRecenterTrigger((prev) => prev + 1);
   };

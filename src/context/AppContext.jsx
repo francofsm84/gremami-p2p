@@ -258,35 +258,46 @@ export function AppProvider({ children }) {
 
   // 3. Seguimiento GPS Continuo en Tiempo Real (watchPosition) con sincronización en Supabase
   useEffect(() => {
-    if (typeof window === 'undefined' || !('geolocation' in navigator)) return;
+    if (typeof window === 'undefined' || typeof navigator === 'undefined' || !('geolocation' in navigator) || !navigator.geolocation) return;
 
     let lastSentTimestamp = 0;
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
-        const coords = [Number(latitude.toFixed(6)), Number(longitude.toFixed(6))];
-        setUserGpsCoords(coords);
-        setUserGpsAccuracy(accuracy);
-        setHasLiveGps(true);
+    let watchId = null;
 
-        // Si el usuario está autenticado, actualizar posición en Supabase con throttle de 15 segundos
-        const now = Date.now();
-        if (currentUser?.id && isSupabaseConfigured && (now - lastSentTimestamp > 15000)) {
-          lastSentTimestamp = now;
-          profileService.updateLocation(currentUser.id, {
-            lat: coords[0],
-            lng: coords[1]
-          }).catch(() => {});
-        }
-      },
-      (err) => {
-        console.warn('AppContext GPS aviso:', err.message);
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 4000 }
-    );
+    try {
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          if (!pos || !pos.coords) return;
+          const { latitude, longitude, accuracy } = pos.coords;
+          const coords = [Number(latitude.toFixed(6)), Number(longitude.toFixed(6))];
+          setUserGpsCoords(coords);
+          setUserGpsAccuracy(accuracy);
+          setHasLiveGps(true);
+
+          // Si el usuario está autenticado, actualizar posición en Supabase con throttle de 15 segundos
+          const now = Date.now();
+          if (currentUser?.id && isSupabaseConfigured && (now - lastSentTimestamp > 15000)) {
+            lastSentTimestamp = now;
+            profileService.updateLocation(currentUser.id, {
+              lat: coords[0],
+              lng: coords[1]
+            }).catch(() => {});
+          }
+        },
+        (err) => {
+          console.warn('AppContext GPS aviso:', err?.message);
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 4000 }
+      );
+    } catch (e) {
+      console.warn('AppContext error al iniciar watchPosition:', e);
+    }
 
     return () => {
-      navigator.geolocation.clearWatch(watchId);
+      if (watchId !== null && typeof navigator !== 'undefined' && navigator.geolocation) {
+        try {
+          navigator.geolocation.clearWatch(watchId);
+        } catch (e) {}
+      }
     };
   }, [currentUser?.id]);
 

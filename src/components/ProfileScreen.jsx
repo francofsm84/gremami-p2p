@@ -97,24 +97,28 @@ export default function ProfileScreen() {
 
   // Forzar actualización GPS manual y sincronización en Supabase
   const handleForceGpsSync = () => {
-    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const coords = [Number(pos.coords.latitude.toFixed(6)), Number(pos.coords.longitude.toFixed(6))];
-          if (setUserGpsCoords) setUserGpsCoords(coords);
-          if (currentUser?.id) {
-            await profileService.updateLocation(currentUser.id, {
-              lat: coords[0],
-              lng: coords[1]
-            }).catch(() => {});
-          }
-          showToast(`📍 Posición GPS sincronizada: ${coords[0]}, ${coords[1]}`, 'success');
-        },
-        (err) => {
-          showToast(`Error al obtener señal GPS: ${err.message}`, 'error');
-        },
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && 'geolocation' in navigator && navigator.geolocation) {
+      try {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const coords = [Number(pos.coords.latitude.toFixed(6)), Number(pos.coords.longitude.toFixed(6))];
+            if (setUserGpsCoords) setUserGpsCoords(coords);
+            if (currentUser?.id) {
+              await profileService.updateLocation(currentUser.id, {
+                lat: coords[0],
+                lng: coords[1]
+              }).catch(() => {});
+            }
+            showToast(`📍 Posición GPS sincronizada: ${coords[0]}, ${coords[1]}`, 'success');
+          },
+          (err) => {
+            showToast(`Error al obtener señal GPS: ${err.message}`, 'error');
+          },
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      } catch (e) {
+        showToast('No se pudo acceder a la geolocalización', 'error');
+      }
     }
   };
 
