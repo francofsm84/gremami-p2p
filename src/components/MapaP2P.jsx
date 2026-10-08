@@ -142,6 +142,19 @@ const VEHICLE_SVG = {
   }
 };
 
+// Normaliza la categoria del nodo al enum canonico para el icono del pin
+// (funcion pura a nivel de modulo — no depende del componente)
+const normalizeCategoryForIcon = (cat) => {
+  if (!cat) return 'caminando';
+  const c = String(cat).toLowerCase().trim();
+  if (c === 'caminando' || c === 'pie' || c === 'peatonal' || c.includes('camin') || c.includes('walk')) return 'caminando';
+  if (c === 'bicicleta' || c === 'bici' || c.includes('bici') || c.includes('bike')) return 'bicicleta';
+  if (c === 'motocicleta' || c === 'moto' || c.includes('moto') || c.includes('scooter')) return 'motocicleta';
+  if (c === 'automovil' || c === 'auto' || c === 'remis' || c === 'taxi' || c.includes('auto') || c.includes('car')) return 'automovil';
+  if (c === 'fletes' || c === 'flete' || c === 'carga' || c.includes('flete') || c.includes('truck') || c.includes('carg')) return 'fletes';
+  return 'caminando';
+};
+
 // Selecciona el SVG correcto segun categoria + modalidad (misma logica que los emojis originales)
 const getVehicleSVG = (node) => {
   const catKey = normalizeCategoryForIcon(node.category);
