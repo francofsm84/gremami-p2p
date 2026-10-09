@@ -229,22 +229,10 @@ export const authService = {
 
   // 1. Función de Inicio de Sesión / Registro con Google OAuth
   signInWithGoogle: async () => {
-    // Detectar la URL de origen correcta según el entorno de ejecución
-    let redirectTarget = 'https://gremami-p2p.vercel.app';
-    if (typeof window !== 'undefined') {
-      const { hostname, port, protocol } = window.location;
-      const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-      const isVercel = window.location.origin.includes('vercel.app');
-
-      if (isLocalhost) {
-        // Usar el puerto real del servidor de desarrollo (Vite: 3000, según vite.config.js)
-        redirectTarget = `${protocol}//${hostname}${port ? ':' + port : ''}`;
-      } else if (isVercel) {
-        redirectTarget = 'https://gremami-p2p.vercel.app';
-      } else {
-        redirectTarget = window.location.origin;
-      }
-    }
+    // Usar window.location.origin de forma limpia sin rutas secundarias ni barras al final
+    const redirectTarget = typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin.replace(/\/+$/, '')
+      : 'https://gremami-p2p.vercel.app';
 
     console.info('[Auth] Google OAuth redirect target:', redirectTarget);
 

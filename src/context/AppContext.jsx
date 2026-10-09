@@ -301,10 +301,10 @@ export function AppProvider({ children }) {
     };
 
     // 1. Forzar procesamiento de tokens OAuth y lectura de sesión (hash en URL o storage)
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
       if (session?.user) {
-        handleUserSession(session.user);
-        // Limpiar hash de tokens en la URL para mantener limpia la dirección
+        // Asegurar que el estado del usuario esté completamente establecido antes de limpiar la URL
+        await handleUserSession(session.user);
         if (typeof window !== 'undefined' && window.location.hash && window.location.hash.includes('access_token')) {
           window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
@@ -321,9 +321,10 @@ export function AppProvider({ children }) {
     });
 
     // 2. Escuchar eventos de cambio de autenticación en tiempo real (OAuth Redirects, Login, Logout)
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        handleUserSession(session.user);
+        // Actualizar estado de usuario antes de limpiar parámetros de la URL
+        await handleUserSession(session.user);
         if (event === 'SIGNED_IN') {
           const userNameLabel = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Google';
           showToast(`¡Bienvenido, ${userNameLabel}! Sesión conectada.`, 'success');
