@@ -44,6 +44,14 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS vehicle_type TEXT NOT NULL DEFAULT 'moto'
   CHECK (vehicle_type IN ('caminando', 'bicicleta', 'moto', 'auto', 'flete'));
 
+-- Añadir email y username a profiles para búsqueda pública sin acceder a auth.users
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS username TEXT;
+
+-- Índices para búsqueda rápida por email y username
+CREATE INDEX IF NOT EXISTS idx_profiles_email    ON public.profiles(email);
+CREATE INDEX IF NOT EXISTS idx_profiles_username ON public.profiles(username);
+
 -- Vista Segura: Perfiles Públicos con Enmascaramiento de WhatsApp Sensible
 CREATE OR REPLACE VIEW public.profiles_public AS
   SELECT 
@@ -276,16 +284,20 @@ BEGIN
   v_role := COALESCE(NEW.raw_user_meta_data->>'role', 'cadete');
   v_ref_code := 'ref-' || SUBSTRING(NEW.id::text, 1, 8);
 
-  -- 1. Insertar Perfil
+  -- 1. Insertar Perfil (con email y username para búsqueda pública)
   INSERT INTO public.profiles (
-    id, full_name, avatar_url, role, referral_code, payment_alias
+    id, full_name, avatar_url, role, referral_code, payment_alias, email, username
   )
   VALUES (
-    NEW.id, v_name, v_avatar, v_role, v_ref_code, 'cadete.gremami.mp'
+    NEW.id, v_name, v_avatar, v_role, v_ref_code, 'cadete.gremami.mp',
+    NEW.email,
+    LOWER(REGEXP_REPLACE(COALESCE(NEW.raw_user_meta_data->>'name', SPLIT_PART(NEW.email, '@', 1)), '[^a-z0-9]', '_', 'g'))
   )
   ON CONFLICT (id) DO UPDATE SET
-    full_name = EXCLUDED.full_name,
+    full_name  = EXCLUDED.full_name,
     avatar_url = EXCLUDED.avatar_url,
+    email      = EXCLUDED.email,
+    username   = COALESCE(profiles.username, EXCLUDED.username),
     updated_at = NOW();
 
   -- 2. Insertar Billetera Dual (10.0 VAL + $0.0 ARS)

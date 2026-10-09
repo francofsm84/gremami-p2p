@@ -507,7 +507,7 @@ export const profileService = {
 
   },
 
-  // Búsqueda de usuarios públicos por nombre o alias/nick
+  // Búsqueda de usuarios públicos por email, username, nombre o alias
   searchUsers: async (query) => {
     if (!query || !query.trim()) return [];
     const cleanQuery = query.trim().toLowerCase();
@@ -515,8 +515,10 @@ export const profileService = {
     if (!isSupabaseConfigured) {
       try {
         const cache = JSON.parse(localStorage.getItem('gremami_supabase_profiles') || '{}');
-        return Object.values(cache).filter(p => 
+        return Object.values(cache).filter(p =>
           (p.full_name && p.full_name.toLowerCase().includes(cleanQuery)) ||
+          (p.username && p.username.toLowerCase().includes(cleanQuery)) ||
+          (p.email && p.email.toLowerCase().includes(cleanQuery)) ||
           (p.payment_alias && p.payment_alias.toLowerCase().includes(cleanQuery))
         );
       } catch (e) {
@@ -525,17 +527,40 @@ export const profileService = {
     }
 
     try {
+      // Buscar en auth.users vía la vista/tabla profiles — incluye email, username, full_name y alias
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url, role, vehicle_type, service_modality, is_online, payment_alias, coverage_zone')
-        .or(`full_name.ilike.%${cleanQuery}%,payment_alias.ilike.%${cleanQuery}%`)
-        .limit(20);
+        .select('id, full_name, username, email, avatar_url, role, vehicle_type, service_modality, is_online, payment_alias, coverage_zone')
+        .or(`email.ilike.%${cleanQuery}%,username.ilike.%${cleanQuery}%,full_name.ilike.%${cleanQuery}%,payment_alias.ilike.%${cleanQuery}%`)
+        .limit(25);
 
       if (error) {
-        console.warn('Error en búsqueda de usuarios:', error.message);
+        console.warn('Error en búsqueda de usuarios Supabase:', error.message);
         return [];
       }
-      return data || [];
+
+      // Normalizar campos para la UI del modal
+      return (data || []).map((p) => ({
+        id: p.id,
+        name: p.full_name || p.username || p.email?.split('@')[0] || 'Usuario',
+        username: p.username || p.email?.split('@')[0] || 'usuario',
+        email: p.email || '',
+        avatar: p.avatar_url || '',
+        role: p.role || 'cliente',
+        roleLabel: p.role === 'cadete' ? 'Cadete P2P' : p.role === 'comercio' ? 'Comercio' : 'Cliente',
+        isOnline: Boolean(p.is_online),
+        coverageZone: p.coverage_zone || 'Alta Gracia',
+        vehicle: p.vehicle_type || '',
+        payment_alias: p.payment_alias || '',
+        rating: 5.0,
+        reviewsCount: 0,
+        completedAgreements: 0,
+        address: `valens1q${p.id?.slice(0, 12) || 'unknown'}`,
+        badges: [p.role === 'cadete' ? 'Cadete Verificado' : 'Miembro Gremami'],
+        bio: `Miembro de la comunidad Gremami P2P${p.coverage_zone ? ' — ' + p.coverage_zone : ''}.`,
+        reviews: [],
+        _source: 'supabase'
+      }));
     } catch (err) {
       console.warn('Excepción en searchUsers:', err);
       return [];
