@@ -93,6 +93,24 @@ function MainLayout() {
 
         {/* Modal de Autenticación Supabase / Google OAuth */}
         <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
+
+        {/* Modal de Búsqueda de Usuarios P2P */}
+        {isSearchModalOpen && (
+          <div className="fixed inset-0 z-[200] pointer-events-auto">
+            <UserSearchModal isOpen={isSearchModalOpen} onClose={closeSearchModal} />
+          </div>
+        )}
+
+        {/* Modal de Perfil Público */}
+        {selectedPublicProfile && (
+          <div className="fixed inset-0 z-[210] pointer-events-auto">
+            <PublicProfileModal
+              user={selectedPublicProfile}
+              isOpen={!!selectedPublicProfile}
+              onClose={closePublicProfile}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
