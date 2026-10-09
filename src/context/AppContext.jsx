@@ -18,7 +18,9 @@ import {
   recordDeliveryTransactionInSupabase,
   saveFiatPaymentConfigToSupabase 
 } from '../lib/supabase';
-import { authService, profileService, isSupabaseConfigured, supabase } from '../lib/supabaseClient';
+import { authService, profileService, isSupabaseConfigured, supabase, valensService } from '../lib/supabaseClient';
+import { derivePublicAddress, generateSeedPhrase, generateValensQrUri, localTransferTokens, localClaimFaucet } from '../services/cryptoWalletService';
+
 
 const AppContext = createContext();
 
@@ -147,11 +149,28 @@ export function AppProvider({ children }) {
   // Category filter for the map: 'all', 'caminando', 'bicicleta', 'automovil', 'comercio'
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
 
-  // ValensCoin balance (requirement: initial balance 10 VALENS)
-  const [balance, setBalance] = useState(10.0);
+  // ValensCoin balance (requirement: initial balance 10 VAL, 0 decimals - integers only)
+  const [balance, setBalance] = useState(10);
 
-  // User credentials & identity
-  const [userPublicKey] = useState('valens1q7x8m9z4k0t3w2y5d8c1f6g9h2j4l7v9m3a');
+  // Dirección y semilla criptográfica BIP-39 generadas/cargadas desde localStorage
+  const [userSeedWords] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gremami_seed_phrase');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    const fresh = generateSeedPhrase();
+    try { localStorage.setItem('gremami_seed_phrase', JSON.stringify(fresh)); } catch (e) {}
+    return fresh;
+  });
+  const [userPublicKey] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gremami_public_address');
+      if (saved) return saved;
+    } catch (e) {}
+    const addr = derivePublicAddress(userSeedWords);
+    try { localStorage.setItem('gremami_public_address', addr); } catch (e) {}
+    return addr;
+  });
   const [userName, setUserName] = useState(() => {
     const urlTokens = extractTokensFromUrl();
     if (urlTokens?.accessToken) {
@@ -729,9 +748,10 @@ export function AppProvider({ children }) {
     }, 1000);
   };
 
-  // Quick Action: Enviar 1 ValensCoin de Agradecimiento vía QR / directo
-  const sendValensTip = (peerId, tipAmount = 1.0) => {
-    if (balance < tipAmount) {
+  // Quick Action: Enviar 1 ValensCoin de Agradecimiento vía QR / directo (enteros)
+  const sendValensTip = (peerId, tipAmount = 1) => {
+    const intTip = Math.max(1, Math.floor(tipAmount));
+    if (Math.floor(balance) < intTip) {
       showToast('❌ Saldo insuficiente en Valens Testnet. Usa el Grifo Faucet para recargar.', 'error');
       return { success: false, error: 'insufficient_funds' };
     }
@@ -739,18 +759,18 @@ export function AppProvider({ children }) {
     const peer = peers.find((p) => p.id === peerId) || { name: 'Compañero P2P', address: 'valens1q...' };
     const txHash = '0x' + Array.from({ length: 8 }, () => Math.floor(Math.random() * 16).toString(16)).join('') + '...' + Array.from({ length: 4 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
 
-    // Deduct balance
-    setBalance((prev) => +(prev - tipAmount).toFixed(2));
+    // Deduct balance (entero)
+    setBalance((prev) => Math.max(0, Math.floor(prev) - intTip));
 
     // Register transaction
     const newTx = {
       id: `tx-${Date.now()}`,
       type: 'tip_sent',
-      amount: -tipAmount,
+      amount: -intTip,
       title: `Propina a ${peer.name}`,
       date: 'Recién',
       hash: txHash,
-      status: 'Confirmado (Bloque #840,129)',
+      status: 'Confirmado',
       note: 'Agradecimiento P2P instantáneo vía Valens Testnet'
     };
 
@@ -761,7 +781,7 @@ export function AppProvider({ children }) {
       id: `tip-${Date.now()}`,
       sender: 'user',
       type: 'valens_tip',
-      amount: `${tipAmount} VALENS`,
+      amount: `${intTip} VAL`,
       txHash: txHash,
       recipient: peer.name,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -772,7 +792,7 @@ export function AppProvider({ children }) {
       [peerId]: [...(prev[peerId] || []), tipMsg]
     }));
 
-    showToast(`⚡ ¡Enviado ${tipAmount} VALENS de agradecimiento a ${peer.name}!`, 'success');
+    showToast(`⚡ ¡Enviado ${intTip} VAL de agradecimiento a ${peer.name}!`, 'success');
 
     // Peer gratitude reply
     setTimeout(() => {
@@ -780,7 +800,7 @@ export function AppProvider({ children }) {
         id: `peer-thanks-${Date.now()}`,
         sender: 'peer',
         senderName: peer.name,
-        text: `🦅 ¡Muchísimas gracias por el ${tipAmount} VALENS de propina! Calificación de 5 estrellas agregada a tu perfil. ⭐⭐⭐⭐⭐`,
+        text: `🦅 ¡Muchísimas gracias por el ${intTip} VAL de propina! Calificación de 5 estrellas agregada a tu perfil. ⭐⭐⭐⭐⭐`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         type: 'text'
       };
@@ -794,25 +814,88 @@ export function AppProvider({ children }) {
     return { success: true, txHash };
   };
 
-  // Testnet Faucet (+5 VALENS)
-  const requestFaucet = () => {
-    const faucetTxHash = '0xfa' + Array.from({ length: 6 }, () => Math.floor(Math.random() * 16).toString(16)).join('') + '...' + Array.from({ length: 4 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-    
-    setBalance((prev) => +(prev + 5.0).toFixed(2));
+  // Testnet Faucet (+5 VAL enteros) — RPC atómica con fallback local
+  const requestFaucet = async () => {
+    const { txHash: faucetTxHash } = localClaimFaucet(balance);
+    const intFaucetAmount = 5;
+
+    // Actualizar saldo localmente de inmediato (entero estricto)
+    setBalance((prev) => Math.floor(prev) + intFaucetAmount);
 
     const newTx = {
       id: `tx-faucet-${Date.now()}`,
       type: 'faucet',
-      amount: 5.0,
+      amount: intFaucetAmount,
       title: 'Recarga Testnet Faucet',
       date: 'Recién',
       hash: faucetTxHash,
-      status: 'Confirmado (Bloque #840,130)',
-      note: 'Grifo de prueba ValensCoin (+5 VALENS)'
+      status: 'Confirmado',
+      note: 'Grifo de prueba ValensCoin (+5 VAL)'
     };
 
     setTransactions((prev) => [newTx, ...prev]);
-    showToast('🚰 +5 VALENS recibidos exitosamente desde el Grifo Testnet', 'success');
+    showToast('🚰 +5 VAL recibidos exitosamente desde el Grifo Testnet', 'success');
+
+    // Intentar RPC remota en segundo plano
+    if (currentUser?.id) {
+      valensService.claimFaucet(currentUser.id).catch(() => {});
+    }
+  };
+
+  // Transferir VAL a otra dirección (enteros estrictos, 0 decimales)
+  const transferTokens = async (receiverAddress, amount) => {
+    const intAmount = Math.floor(Number(amount));
+    if (intAmount <= 0) {
+      showToast('❌ El monto debe ser un número entero mayor a 0 VAL.', 'error');
+      return { success: false, error: 'invalid_amount' };
+    }
+    if (!receiverAddress || !receiverAddress.trim().startsWith('valens')) {
+      showToast('❌ Dirección inválida. Debe iniciar con valens...', 'error');
+      return { success: false, error: 'invalid_address' };
+    }
+    if (Math.floor(balance) < intAmount) {
+      showToast(`❌ Saldo insuficiente. Tienes ${Math.floor(balance)} VAL disponibles.`, 'error');
+      return { success: false, error: 'insufficient_funds' };
+    }
+
+    const { success, txHash, error: localErr } = localTransferTokens({
+      fromAddress: userPublicKey,
+      toAddress: receiverAddress.trim(),
+      amount: intAmount,
+      senderWallet: { balance_valens: Math.floor(balance) }
+    });
+
+    if (!success) {
+      showToast(`❌ ${localErr}`, 'error');
+      return { success: false, error: localErr };
+    }
+
+    // Deducir del saldo local (entero)
+    setBalance((prev) => Math.floor(prev) - intAmount);
+
+    const newTx = {
+      id: `tx-transfer-${Date.now()}`,
+      type: 'transfer',
+      amount: -intAmount,
+      title: `Envío a ${receiverAddress.trim().slice(0, 14)}...`,
+      date: 'Recién',
+      hash: txHash,
+      status: 'Confirmado',
+      note: `Transferencia P2P de ${intAmount} VAL`
+    };
+    setTransactions((prev) => [newTx, ...prev]);
+    showToast(`⚡ ${intAmount} VAL enviados a ${receiverAddress.trim().slice(0, 14)}...`, 'success');
+
+    // Intentar RPC remota en segundo plano
+    if (currentUser?.id) {
+      valensService.transferTokens({
+        senderId: currentUser.id,
+        receiverAddress: receiverAddress.trim(),
+        amount: intAmount
+      }).catch(() => {});
+    }
+
+    return { success: true, txHash, amount: intAmount };
   };
 
   // Toggle Theme: Modo Noche (Cripto Dark) vs Modo Día (High Contrast)
@@ -1795,7 +1878,17 @@ export function AppProvider({ children }) {
         categories: PEER_CATEGORIES,
         messages,
         transactions,
-        seedWords: BIP39_SEED_WORDS,
+        seedWords: userSeedWords,
+        transferTokens,
+        valensQrUri: generateValensQrUri(userPublicKey),
+        tokenGenesis: {
+          symbol: 'VAL',
+          name: 'ValensCoin',
+          totalSupply: 1000000000000,
+          decimals: 0,
+          faucetDrip: 5,
+          initialAirdrop: 10
+        },
         startChatWithPeer,
         sendTextMessage,
         agreeCashPayment,

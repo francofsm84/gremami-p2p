@@ -833,8 +833,8 @@ export const INITIAL_ORDERS_HISTORY = {
 export const INITIAL_TRANSACTIONS = [
   {
     id: 'tx-001',
-    type: 'faucet',
-    amount: 10.0,
+    type: 'airdrop',
+    amount: 10,
     title: 'Airdrop Inicial Valens Testnet',
     date: 'Hoy, 09:00',
     hash: '0x3a7e...f82b',

@@ -1326,4 +1326,85 @@ export const storageService = {
   }
 };
 
+// ====================================================================
+// 14. MÓDULO VALENSCOIN CRIPTO — transferTokens, claimFaucet, getTokenGenesis
+// ====================================================================
+export const valensService = {
+  /**
+   * Transfiere tokens VAL (enteros) usando RPC atómica o fallback local.
+   */
+  transferTokens: async ({ senderId, receiverAddress, amount }) => {
+    const intAmount = Math.floor(Number(amount));
+    if (intAmount <= 0) return { success: false, error: 'Monto inválido: debe ser entero > 0.' };
+    if (!receiverAddress || !receiverAddress.startsWith('valens')) {
+      return { success: false, error: 'Dirección de destino inválida. Debe iniciar con valens...' };
+    }
+
+    if (!isSupabaseConfigured || !senderId) {
+      // Fallback local — sin conexión a Supabase
+      const txHash = '0x' + Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      return { success: true, txHash, amount: intAmount, remote: false };
+    }
+
+    const { data, error } = await supabase.rpc('transfer_valens_tokens', {
+      p_sender_id: senderId,
+      p_receiver_addr: receiverAddress,
+      p_amount: intAmount
+    });
+
+    if (error) {
+      console.warn('Error en RPC transfer_valens_tokens:', error.message);
+      return { success: false, error: error.message };
+    }
+    return data || { success: false, error: 'Respuesta vacía del servidor.' };
+  },
+
+  /**
+   * Reclama +5 VAL del grifo usando RPC atómica o fallback local.
+   */
+  claimFaucet: async (userId) => {
+    if (!isSupabaseConfigured || !userId) {
+      const txHash = '0xfa' + Array.from({ length: 8 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      return { success: true, txHash, amount: 5, remote: false };
+    }
+
+    const { data, error } = await supabase.rpc('claim_faucet_tokens', {
+      p_user_id: userId
+    });
+
+    if (error) {
+      console.warn('Error en RPC claim_faucet_tokens:', error.message);
+      return { success: false, error: error.message };
+    }
+    return data || { success: true, amount: 5 };
+  },
+
+  /**
+   * Lee la configuración de token_genesis (suministro total, decimales, etc.).
+   */
+  getTokenGenesis: async () => {
+    const defaultGenesis = {
+      token_symbol: 'VAL',
+      token_name: 'ValensCoin',
+      total_supply: 1000000000000,
+      decimals: 0,
+      faucet_drip_amount: 5,
+      initial_user_airdrop: 10,
+      reserve_balance: 1000000000000
+    };
+
+    if (!isSupabaseConfigured) return defaultGenesis;
+
+    const { data, error } = await supabase
+      .from('token_genesis')
+      .select('*')
+      .eq('token_symbol', 'VAL')
+      .maybeSingle();
+
+    if (error || !data) return defaultGenesis;
+    return data;
+  }
+};
+
 export default supabase;
+

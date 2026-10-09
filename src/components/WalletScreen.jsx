@@ -78,6 +78,9 @@ export default function WalletScreen() {
     userPublicKey,
     transactions,
     requestFaucet,
+    transferTokens,
+    valensQrUri,
+    tokenGenesis,
     showToast,
     theme,
     ordersHistory,
@@ -95,8 +98,16 @@ export default function WalletScreen() {
   // Estados de Copiado y Modales
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedAlias, setCopiedAlias] = useState(false);
+  const [copiedQrUri, setCopiedQrUri] = useState(false);
   const [receiveTab, setReceiveTab] = useState('crypto'); // 'crypto' | 'fiat'
   const [showQrReceiveModal, setShowQrReceiveModal] = useState(false);
+  const [receiveCustomAmount, setReceiveCustomAmount] = useState('');
+
+  // Estados del Modal "Enviar VAL"
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [sendAddress, setSendAddress] = useState('');
+  const [sendAmount, setSendAmount] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
   // Estados de Educación Cripto
   const [openModuleId, setOpenModuleId] = useState('keys');
@@ -409,16 +420,23 @@ export default function WalletScreen() {
             <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[#E02424]/12 rounded-full blur-3xl pointer-events-none" />
 
             {/* Network Badge */}
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-full border text-xs ${
                 isDark ? 'bg-[#070C1E]/90 border-[#1F2D48]' : 'bg-slate-100 border-slate-200'
               }`}>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span className={`text-[11px] font-mono ${isDark ? 'text-gray-200' : 'text-slate-700'}`}>Valens Testnet L1</span>
               </div>
-              <span className={`text-[11px] font-mono ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>
-                Bloque #840,129
-              </span>
+              <div className="flex items-center space-x-1.5">
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                  isDark ? 'text-[#F0B90B] bg-[#F7931A]/10 border-[#F7931A]/30' : 'text-amber-800 bg-amber-100 border-amber-300 font-bold'
+                }`}>
+                  1.000.000.000.000 VAL (1 Billón)
+                </span>
+                <span className={`text-[11px] font-mono ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>
+                  Bloque #840,129
+                </span>
+              </div>
             </div>
 
             {/* Balance Title & Amount */}
@@ -431,29 +449,29 @@ export default function WalletScreen() {
                   ? 'bg-gradient-to-r from-[#F7931A]/20 to-[#E02424]/20 text-[#F0B90B] border-[#F7931A]/40' 
                   : 'bg-amber-100 text-amber-900 border-amber-300 font-bold'
               }`}>
-                <span>🪙 Token de Gratitud y Reputación</span>
+                <span>🪙 0 Decimales (Enteros)</span>
               </span>
             </div>
 
             <div className="my-1.5 flex items-baseline space-x-2">
               <h2 className="text-3xl sm:text-4xl font-black text-[#F0B90B] font-mono tracking-tight drop-shadow-sm">
-                {balance.toFixed(2)}
+                {Math.floor(balance)}
               </h2>
-              <span className={`text-base font-bold font-mono ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>VALENS</span>
+              <span className={`text-base font-bold font-mono ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>VAL</span>
             </div>
             <p className={`text-xs font-mono font-medium ${isDark ? 'text-[#8C9BB4]' : 'text-slate-600'}`}>
-              ≈ ${(balance * 2.0).toFixed(2)} USD • ${(balance * 2500).toLocaleString('es-AR')} ARS (Tasa P2P de Referencia)
+              ≈ ${(Math.floor(balance) * 2.0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} USD • ${(Math.floor(balance) * 2500).toLocaleString('es-AR')} ARS (Tasa P2P de Referencia)
             </p>
 
-            {/* Botones de Acción: Recibir (QR) & Grifo (+5 VAL) */}
-            <div className="mt-5 grid grid-cols-2 gap-2.5">
+            {/* Botones de Acción: Recibir (QR), Enviar VAL & Grifo (+5 VAL) */}
+            <div className="mt-5 grid grid-cols-3 gap-2">
               <button
                 onClick={() => {
                   setReceiveTab('crypto');
                   setShowQrReceiveModal(true);
                 }}
                 type="button"
-                className={`min-h-[44px] flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl text-xs font-semibold border shadow-md transition-all active:scale-[0.98] ${
+                className={`min-h-[44px] flex items-center justify-center flex-col gap-1 py-2 px-2 rounded-xl text-[11px] font-semibold border shadow-md transition-all active:scale-[0.98] ${
                   isDark
                     ? 'bg-[#1A253D] hover:bg-[#202E4B] text-white border-[#2D3E61]'
                     : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-300'
@@ -464,9 +482,22 @@ export default function WalletScreen() {
               </button>
 
               <button
+                onClick={() => setShowSendModal(true)}
+                type="button"
+                className={`min-h-[44px] flex items-center justify-center flex-col gap-1 py-2 px-2 rounded-xl text-[11px] font-semibold border shadow-md transition-all active:scale-[0.98] ${
+                  isDark
+                    ? 'bg-[#1A253D] hover:bg-[#202E4B] text-white border-[#2D3E61]'
+                    : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-300'
+                }`}
+              >
+                <ArrowUpRight className="w-4 h-4 text-[#E02424]" />
+                <span>Enviar VAL</span>
+              </button>
+
+              <button
                 onClick={requestFaucet}
                 type="button"
-                className="min-h-[44px] flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#F7931A] to-[#E07D09] hover:from-[#F0B90B] hover:to-[#F7931A] text-black text-xs font-bold shadow-glow-orange transition-all active:scale-[0.98]"
+                className="min-h-[44px] flex items-center justify-center flex-col gap-1 py-2 px-2 rounded-xl bg-gradient-to-r from-[#F7931A] to-[#E07D09] hover:from-[#F0B90B] hover:to-[#F7931A] text-black text-[11px] font-bold shadow-glow-orange transition-all active:scale-[0.98]"
               >
                 <Sparkles className="w-4 h-4 fill-black" />
                 <span>Grifo (+5 VAL)</span>
@@ -571,7 +602,7 @@ export default function WalletScreen() {
                         tx.amount > 0 ? 'text-emerald-400' : 'text-[#F0B90B]'
                       }`}
                     >
-                      {tx.amount > 0 ? `+${tx.amount.toFixed(2)}` : tx.amount.toFixed(2)} VAL
+                      {tx.amount > 0 ? `+${Math.floor(Math.abs(tx.amount))}` : `-${Math.floor(Math.abs(tx.amount))}`} VAL
                     </p>
                     <span className={`text-[9px] ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>{tx.status}</span>
                   </div>
@@ -906,6 +937,163 @@ export default function WalletScreen() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* ── MODAL: ENVIAR VALENSCOIN (VAL) ─────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {showSendModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className={`border rounded-2xl max-w-sm w-full p-5 shadow-2xl relative ${
+            isDark ? 'bg-[#121B2D] border-[#1F2D48] text-white' : 'bg-white border-slate-300 text-slate-900'
+          }`}>
+            <button
+              onClick={() => { setShowSendModal(false); setSendAddress(''); setSendAmount(''); }}
+              className="absolute top-3 right-3 text-[#8C9BB4] hover:text-white p-1 rounded-lg transition-colors"
+              title="Cerrar"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-[#E02424]/20 border border-[#E02424]/40 flex items-center justify-center">
+                <ArrowUpRight className="w-4 h-4 text-[#E02424]" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-sm font-bold">Enviar ValensCoin</h3>
+                <p className={`text-[10px] ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>Transferencia directa L1 (0 decimales)</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {/* Saldo disponible */}
+              <div className={`p-3 rounded-xl border text-center ${
+                isDark ? 'bg-[#070C1E] border-[#1F2D48]' : 'bg-amber-50 border-amber-200'
+              }`}>
+                <p className={`text-[11px] mb-0.5 ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>Saldo disponible</p>
+                <p className="text-2xl font-black text-[#F0B90B] font-mono">{Math.floor(balance)} VAL</p>
+              </div>
+
+              {/* Dirección de destino */}
+              <div className="text-left">
+                <label className={`text-[11px] font-bold block mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  Dirección de destino (valens1q...):
+                </label>
+                <input
+                  type="text"
+                  value={sendAddress}
+                  onChange={(e) => {
+                    const val = e.target.value.trim();
+                    if (val.startsWith('valens:')) {
+                      const match = val.match(/valens:([^?]+)/);
+                      if (match) setSendAddress(match[1]);
+                      const amtMatch = val.match(/amount=(\d+)/);
+                      if (amtMatch) setSendAmount(amtMatch[1]);
+                    } else {
+                      setSendAddress(val);
+                    }
+                  }}
+                  placeholder="valens1q..."
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-[#F7931A] transition-colors ${
+                    isDark ? 'bg-[#070C1E] border-[#1F2D48] text-[#F0B90B]' : 'bg-white border-slate-300 text-slate-800'
+                  }`}
+                />
+              </div>
+
+              {/* Monto en VAL */}
+              <div className="text-left">
+                <div className="flex items-center justify-between mb-1">
+                  <label className={`text-[11px] font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Monto a enviar (VAL enteros):
+                  </label>
+                  <div className="flex items-center space-x-1">
+                    {[1, 5, 10].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setSendAmount(String(amt))}
+                        className={`text-[10px] px-1.5 py-0.5 rounded border font-mono transition-colors ${
+                          isDark ? 'bg-[#1A253D] border-[#2D3E61] text-slate-300 hover:text-white' : 'bg-slate-100 border-slate-200 text-slate-700'
+                        }`}
+                      >
+                        +{amt}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setSendAmount(String(Math.floor(balance)))}
+                      className={`text-[10px] px-1.5 py-0.5 rounded border font-mono font-bold transition-colors ${
+                        isDark ? 'bg-[#F7931A]/20 border-[#F7931A]/40 text-[#F0B90B]' : 'bg-amber-100 border-amber-300 text-amber-800'
+                      }`}
+                    >
+                      Máx
+                    </button>
+                  </div>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={sendAmount}
+                  onChange={(e) => setSendAmount(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="ej. 5"
+                  className={`w-full border rounded-xl px-3 py-2 text-sm font-mono font-bold focus:outline-none focus:border-[#F7931A] transition-colors ${
+                    isDark ? 'bg-[#070C1E] border-[#1F2D48] text-white' : 'bg-white border-slate-300 text-slate-900'
+                  }`}
+                />
+                {sendAmount && parseInt(sendAmount) > 0 && (
+                  <p className={`text-[10px] mt-1 ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>
+                    ≈ ${(parseInt(sendAmount) * 2).toFixed(0)} USD • ${(parseInt(sendAmount) * 2500).toLocaleString('es-AR')} ARS
+                  </p>
+                )}
+              </div>
+
+              {/* Alerta de seguridad */}
+              <div className={`p-2.5 rounded-xl border flex items-start gap-2 ${
+                isDark ? 'bg-[#E02424]/10 border-[#E02424]/30' : 'bg-red-50 border-red-200'
+              }`}>
+                <AlertTriangle className="w-3.5 h-3.5 text-[#E02424] flex-shrink-0 mt-0.5" />
+                <p className="text-[10px] text-[#E02424] leading-relaxed">
+                  Las transacciones en Valens Testnet son <strong>irreversibles</strong>. Verifica la dirección antes de confirmar.
+                </p>
+              </div>
+
+              {/* Botones de acción */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => { setShowSendModal(false); setSendAddress(''); setSendAmount(''); }}
+                  className={`min-h-[44px] rounded-xl text-xs font-bold border transition-all active:scale-95 ${
+                    isDark ? 'border-slate-700 text-slate-400 hover:text-white' : 'border-slate-300 text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={isSending || !sendAddress.trim() || !sendAmount || parseInt(sendAmount) <= 0 || parseInt(sendAmount) > Math.floor(balance)}
+                  onClick={async () => {
+                    if (isSending) return;
+                    setIsSending(true);
+                    try {
+                      const result = await transferTokens(sendAddress.trim(), parseInt(sendAmount));
+                      if (result?.success) {
+                        setShowSendModal(false);
+                        setSendAddress('');
+                        setSendAmount('');
+                      }
+                    } finally {
+                      setIsSending(false);
+                    }
+                  }}
+                  className="min-h-[44px] rounded-xl bg-gradient-to-r from-[#E02424] to-[#F7931A] text-black text-xs font-black shadow-md transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSending ? 'Enviando...' : `Enviar ${sendAmount || 0} VAL`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
       {/* ── MODAL MULTIMONEDA: RECIBIR VALENSCOIN Y PESOS ($ ARS) ──       */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       {showQrReceiveModal && (
@@ -1001,23 +1189,65 @@ export default function WalletScreen() {
                   </svg>
                 </div>
 
+                {/* Monto opcional a solicitar */}
+                <div className="text-left">
+                  <label className={`text-[10px] font-bold block mb-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                    Monto a solicitar en VAL (opcional):
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={receiveCustomAmount}
+                    onChange={(e) => setReceiveCustomAmount(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="ej. 10 (sin decimales)"
+                    className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold focus:outline-none focus:border-[#F7931A] ${
+                      isDark ? 'bg-[#070C1E] border-[#1F2D48] text-[#F0B90B]' : 'bg-slate-50 border-slate-200 text-slate-900'
+                    }`}
+                  />
+                </div>
+
                 <div className={`p-2.5 rounded-xl border text-left ${
                   isDark ? 'bg-[#070C1E] border-[#1F2D48]' : 'bg-slate-50 border-slate-200'
                 }`}>
-                  <span className="text-[10px] text-slate-400 block mb-0.5">Clave Pública de Billetera (Dirección L1):</span>
-                  <span className="text-[11px] font-mono text-[#F0B90B] break-all select-all font-semibold">
+                  <span className="text-[10px] text-slate-400 block mb-0.5">Clave Pública (Dirección Testnet L1):</span>
+                  <span className="text-[11px] font-mono text-[#F0B90B] break-all select-all font-semibold block">
                     {userPublicKey}
+                  </span>
+                  <span className="text-[9.5px] font-mono text-slate-400 break-all select-all block mt-1.5 border-t border-slate-800/40 pt-1">
+                    URI: {receiveCustomAmount && parseInt(receiveCustomAmount) > 0 ? `valens:${userPublicKey}?amount=${parseInt(receiveCustomAmount)}` : `valens:${userPublicKey}`}
                   </span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleCopyPublicKey}
-                  className="w-full min-h-[44px] py-2.5 rounded-xl bg-gradient-to-r from-[#F7931A] to-[#E07D09] text-black font-bold text-xs shadow-glow-orange hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>{copiedKey ? '¡Dirección Copiada!' : 'Copiar Dirección'}</span>
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCopyPublicKey}
+                    className="min-h-[44px] py-2 px-2 rounded-xl bg-gradient-to-r from-[#F7931A] to-[#E07D09] text-black font-bold text-xs shadow-glow-orange hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>{copiedKey ? '¡Copiada!' : 'Copiar Dirección'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const fullUri = receiveCustomAmount && parseInt(receiveCustomAmount) > 0 
+                        ? `valens:${userPublicKey}?amount=${parseInt(receiveCustomAmount)}` 
+                        : `valens:${userPublicKey}`;
+                      navigator.clipboard.writeText(fullUri);
+                      setCopiedQrUri(true);
+                      showToast('🔗 Enlace QR de cobro copiado', 'success');
+                      setTimeout(() => setCopiedQrUri(false), 2000);
+                    }}
+                    className={`min-h-[44px] py-2 px-2 rounded-xl border font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-1.5 ${
+                      isDark ? 'bg-[#1A253D] hover:bg-[#202E4B] text-white border-[#2D3E61]' : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
+                    }`}
+                  >
+                    {copiedQrUri ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-[#F7931A]" />}
+                    <span>{copiedQrUri ? '¡URI Copiado!' : 'Copiar Enlace'}</span>
+                  </button>
+                </div>
               </div>
             )}
 

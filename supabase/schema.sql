@@ -759,3 +759,192 @@ CREATE POLICY "verifications_owner_insert" ON storage.objects
     bucket_id = 'verifications'
     AND auth.uid()::text = (storage.foldername(name))[1]
   );
+
+-- ====================================================================
+-- 18. TOKEN GENESIS — ValensCoin (VAL) Tokenomics y Configuración de Red
+-- ====================================================================
+CREATE TABLE IF NOT EXISTS public.token_genesis (
+  id SERIAL PRIMARY KEY,
+  token_symbol TEXT NOT NULL DEFAULT 'VAL',
+  token_name TEXT NOT NULL DEFAULT 'ValensCoin',
+  total_supply BIGINT NOT NULL DEFAULT 1000000000000,
+  decimals INTEGER NOT NULL DEFAULT 0,
+  faucet_drip_amount INTEGER NOT NULL DEFAULT 5,
+  initial_user_airdrop INTEGER NOT NULL DEFAULT 10,
+  reserve_balance BIGINT NOT NULL DEFAULT 1000000000000,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Registro único de génesis
+INSERT INTO public.token_genesis (
+  token_symbol, token_name, total_supply, decimals,
+  faucet_drip_amount, initial_user_airdrop, reserve_balance
+)
+SELECT 'VAL', 'ValensCoin', 1000000000000, 0, 5, 10, 1000000000000
+WHERE NOT EXISTS (SELECT 1 FROM public.token_genesis WHERE token_symbol = 'VAL');
+
+-- ====================================================================
+-- 19. EXTENSIÓN DE WALLETS — Campos Cripto para ValensCoin L1
+-- ====================================================================
+ALTER TABLE public.wallets
+  ADD COLUMN IF NOT EXISTS public_address TEXT UNIQUE,
+  ADD COLUMN IF NOT EXISTS balance_valens BIGINT DEFAULT 10,
+  ADD COLUMN IF NOT EXISTS encrypted_seed_phrase TEXT;
+
+-- Sincronizar balance_valens con balance_val al arrancar (redondeo entero)
+UPDATE public.wallets SET balance_valens = FLOOR(COALESCE(balance_val, valens_balance, 10)) WHERE balance_valens IS NULL;
+
+-- ====================================================================
+-- 20. TABLA: TRANSACTIONS (Alias uniforme de valens_transactions)
+-- ====================================================================
+CREATE OR REPLACE VIEW public.transactions AS
+  SELECT
+    id,
+    order_id,
+    from_user      AS sender_id,
+    to_user        AS receiver_id,
+    sender_id      AS sender_user_id,
+    receiver_id    AS receiver_user_id,
+    amount_val     AS amount,
+    amount_ars,
+    type,
+    description,
+    created_at,
+    NULL::TEXT     AS tx_hash,
+    NULL::TEXT     AS sender_address,
+    NULL::TEXT     AS receiver_address,
+    'confirmed'::TEXT AS status
+  FROM public.valens_transactions;
+
+-- ====================================================================
+-- 21. FUNCIÓN RPC: TRANSFERENCIA ATÓMICA DE VALENSCOIN (Integers Only)
+-- ====================================================================
+CREATE OR REPLACE FUNCTION public.transfer_valens_tokens(
+  p_sender_id      UUID,
+  p_receiver_addr  TEXT,
+  p_amount         INTEGER
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_sender_wallet   RECORD;
+  v_receiver_wallet RECORD;
+  v_tx_hash         TEXT;
+  v_receiver_id     UUID;
+BEGIN
+  -- Validaciones
+  IF p_amount <= 0 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'El monto debe ser mayor a 0 VAL entero.');
+  END IF;
+
+  -- Bloquear billetera del emisor
+  SELECT * INTO v_sender_wallet
+  FROM public.wallets WHERE user_id = p_sender_id FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Billetera emisora no encontrada.');
+  END IF;
+
+  IF COALESCE(v_sender_wallet.balance_valens, FLOOR(v_sender_wallet.balance_val)) < p_amount THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Saldo insuficiente de ValensCoin.');
+  END IF;
+
+  -- Buscar receptor por dirección pública o user_id
+  SELECT user_id INTO v_receiver_id
+  FROM public.wallets WHERE public_address = p_receiver_addr
+  LIMIT 1;
+
+  -- Generar hash de transacción único
+  v_tx_hash := '0x' || encode(gen_random_bytes(16), 'hex');
+
+  -- Debitar emisor
+  UPDATE public.wallets
+  SET balance_valens = COALESCE(balance_valens, FLOOR(balance_val)) - p_amount,
+      balance_val    = GREATEST(0, COALESCE(balance_val, 0) - p_amount),
+      valens_balance = GREATEST(0, COALESCE(valens_balance, 0) - p_amount),
+      updated_at     = NOW()
+  WHERE user_id = p_sender_id;
+
+  -- Acreditar receptor si existe en la plataforma
+  IF v_receiver_id IS NOT NULL THEN
+    UPDATE public.wallets
+    SET balance_valens = COALESCE(balance_valens, 0) + p_amount,
+        balance_val    = COALESCE(balance_val, 0) + p_amount,
+        valens_balance = COALESCE(valens_balance, 0) + p_amount,
+        updated_at     = NOW()
+    WHERE user_id = v_receiver_id;
+  END IF;
+
+  -- Registrar transacción
+  INSERT INTO public.valens_transactions (
+    from_user, to_user, sender_id, receiver_id,
+    amount_val, amount_ars, type, description
+  ) VALUES (
+    p_sender_id, v_receiver_id, p_sender_id, v_receiver_id,
+    p_amount, 0, 'direct_transfer',
+    'Transferencia P2P ValensCoin: ' || p_amount || ' VAL → ' || p_receiver_addr
+  );
+
+  -- Reducir reserva del token_genesis
+  UPDATE public.token_genesis
+  SET reserve_balance = GREATEST(0, reserve_balance - p_amount)
+  WHERE token_symbol = 'VAL';
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'tx_hash', v_tx_hash,
+    'amount', p_amount,
+    'receiver_address', p_receiver_addr,
+    'message', 'Transferencia de ' || p_amount || ' VAL confirmada.'
+  );
+END;
+$$;
+
+-- ====================================================================
+-- 22. FUNCIÓN RPC: GRIFO (FAUCET) — +5 VAL Atómico
+-- ====================================================================
+CREATE OR REPLACE FUNCTION public.claim_faucet_tokens(
+  p_user_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_drip    INTEGER := 5;
+  v_tx_hash TEXT;
+BEGIN
+  v_tx_hash := '0xfa' || encode(gen_random_bytes(8), 'hex');
+
+  -- Acreditar 5 VAL enteros al usuario
+  INSERT INTO public.wallets (user_id, balance_valens, balance_val, valens_balance, updated_at)
+  VALUES (p_user_id, v_drip, v_drip, v_drip, NOW())
+  ON CONFLICT (user_id) DO UPDATE
+  SET balance_valens = COALESCE(wallets.balance_valens, 0) + v_drip,
+      balance_val    = COALESCE(wallets.balance_val, 0) + v_drip,
+      valens_balance = COALESCE(wallets.valens_balance, 0) + v_drip,
+      updated_at     = NOW();
+
+  -- Registrar transacción de faucet
+  INSERT INTO public.valens_transactions (
+    from_user, to_user, receiver_id, amount_val, amount_ars, type, description
+  ) VALUES (
+    NULL, p_user_id, p_user_id, v_drip, 0, 'faucet',
+    'Grifo ValensCoin Testnet: +' || v_drip || ' VAL'
+  );
+
+  -- Reducir reserva
+  UPDATE public.token_genesis
+  SET reserve_balance = GREATEST(0, reserve_balance - v_drip)
+  WHERE token_symbol = 'VAL';
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'tx_hash', v_tx_hash,
+    'amount', v_drip,
+    'message', '+' || v_drip || ' VAL acreditados desde el Grifo Testnet.'
+  );
+END;
+$$;
