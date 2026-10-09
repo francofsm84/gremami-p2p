@@ -507,11 +507,12 @@ export const profileService = {
 
   },
 
-  // Búsqueda de usuarios públicos por email, username, nombre o alias
+  // Búsqueda de usuarios públicos vía RPC search_community_users
   searchUsers: async (query) => {
     if (!query || !query.trim()) return [];
     const cleanQuery = query.trim().toLowerCase();
 
+    // Fallback offline: buscar en cache local de profiles
     if (!isSupabaseConfigured) {
       try {
         const cache = JSON.parse(localStorage.getItem('gremami_supabase_profiles') || '{}');
@@ -527,19 +528,17 @@ export const profileService = {
     }
 
     try {
-      // Buscar en auth.users vía la vista/tabla profiles — incluye email, username, full_name y alias
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, username, email, avatar_url, role, vehicle_type, service_modality, is_online, payment_alias, coverage_zone')
-        .or(`email.ilike.%${cleanQuery}%,username.ilike.%${cleanQuery}%,full_name.ilike.%${cleanQuery}%,payment_alias.ilike.%${cleanQuery}%`)
-        .limit(25);
+      // Invocar la función RPC search_community_users creada en Supabase
+      const { data, error } = await supabase.rpc('search_community_users', {
+        search_term: cleanQuery
+      });
 
       if (error) {
-        console.warn('Error en búsqueda de usuarios Supabase:', error.message);
+        console.warn('Error en RPC search_community_users:', error.message);
         return [];
       }
 
-      // Normalizar campos para la UI del modal
+      // Normalizar campos al formato que espera PublicProfileModal / UserSearchModal
       return (data || []).map((p) => ({
         id: p.id,
         name: p.full_name || p.username || p.email?.split('@')[0] || 'Usuario',
@@ -562,7 +561,7 @@ export const profileService = {
         _source: 'supabase'
       }));
     } catch (err) {
-      console.warn('Excepción en searchUsers:', err);
+      console.warn('Excepción en searchUsers RPC:', err);
       return [];
     }
   }
