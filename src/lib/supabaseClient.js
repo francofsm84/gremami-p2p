@@ -19,11 +19,12 @@ export const envUrl = (isValidHttpUrl(rawEnvUrl) && !rawEnvUrl.includes('your-pr
   ? rawEnvUrl 
   : 'https://wbgaeniwnshlmppvmlcf.supabase.co';
 
+// isSupabaseConfigured: acepta claves JWT (eyJ...) y claves publishable modernas (sb_publishable_...)
 export const isSupabaseConfigured = Boolean(
   isValidHttpUrl(envUrl) &&
   !envUrl.includes('your-project-id') &&
   envKey &&
-  (envKey.startsWith('sb_') || envKey.startsWith('eyJ'))
+  (envKey.startsWith('sb_') || envKey.startsWith('eyJ') || envKey.startsWith('sb_publishable_'))
 );
 
 export const supabase = createClient(envUrl, envKey, {
@@ -39,9 +40,9 @@ export const supabase = createClient(envUrl, envKey, {
   }
 });
 
-const buildMockGoogleUser = (fullName = 'Google Demo User') => {
+const buildMockGoogleUser = (fullName = 'Usuario Demo Google') => {
   const now = Date.now();
-  const safeName = String(fullName || 'Google Demo User').trim() || 'Google Demo User';
+  const safeName = String(fullName || 'Usuario Demo Google').trim() || 'Usuario Demo Google';
   const avatarUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
 
   return {
@@ -59,7 +60,8 @@ const buildMockGoogleUser = (fullName = 'Google Demo User') => {
       avatar_url: avatarUrl,
       picture: avatarUrl,
       role: 'cadete'
-    }
+    },
+    isMock: true
   };
 };
 
@@ -205,19 +207,44 @@ export const authService = {
 
   // 1. Función de Inicio de Sesión / Registro con Google OAuth
   signInWithGoogle: async () => {
-    // Si estamos en cualquier dominio vercel.app, forzar estrictamente el dominio de produccion
-    const isVercel = typeof window !== 'undefined' && window.location.origin.includes('vercel.app');
-    const redirectTarget = isVercel 
-      ? 'https://gremami-p2p.vercel.app' 
-      : (typeof window !== 'undefined' ? window.location.origin : 'https://gremami-p2p.vercel.app');
+    // Detectar la URL de origen correcta según el entorno de ejecución
+    let redirectTarget = 'https://gremami-p2p.vercel.app';
+    if (typeof window !== 'undefined') {
+      const { hostname, port, protocol } = window.location;
+      const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+      const isVercel = window.location.origin.includes('vercel.app');
+
+      if (isLocalhost) {
+        // Usar el puerto real del servidor de desarrollo (Vite: 3000, según vite.config.js)
+        redirectTarget = `${protocol}//${hostname}${port ? ':' + port : ''}`;
+      } else if (isVercel) {
+        redirectTarget = 'https://gremami-p2p.vercel.app';
+      } else {
+        redirectTarget = window.location.origin;
+      }
+    }
+
+    console.info('[Auth] Google OAuth redirect target:', redirectTarget);
 
     try {
       const result = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectTarget
+          redirectTo: redirectTarget,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account'
+          }
         }
       });
+
+      // data.url presente = Supabase devolvió la URL de redirección a Google (flujo normal OAuth)
+      // No es un error - el browser hará la redirección y el onAuthStateChange en AppContext
+      // capturará el SIGNED_IN event cuando el usuario regrese
+      if (result?.data?.url) {
+        console.info('[Auth] Google OAuth URL recibida, redirigiendo al proveedor de identidad...');
+        return result;
+      }
 
       if (result?.error) {
         throw result.error;
@@ -225,9 +252,10 @@ export const authService = {
 
       return result;
     } catch (error) {
-      console.warn('Google OAuth no disponible; activando autenticación simulada para desarrollo/testnet.', error);
+      // Solo cae aquí si hay un error real de red (CORS, Supabase caído, config incorrecta)
+      console.warn('[Auth] Google OAuth no disponible; activando sesión simulada (testnet):', error?.message || error);
 
-      const mockUser = buildMockGoogleUser('Usuario demo Google');
+      const mockUser = buildMockGoogleUser('Usuario Demo Google');
       const mockWallet = { valens_balance: 10.0 };
       const mockProfile = {
         full_name: mockUser.user_metadata.full_name,
@@ -235,16 +263,14 @@ export const authService = {
         role: 'cadete'
       };
 
-      const mockAuthUser = {
-        ...mockUser,
-        profile: mockProfile,
-        wallet: mockWallet
-      };
-
       try {
-        localStorage.setItem('gremami_auth_user', JSON.stringify(mockAuthUser));
+        localStorage.setItem('gremami_auth_user', JSON.stringify({
+          ...mockUser,
+          profile: mockProfile,
+          wallet: mockWallet
+        }));
       } catch (e) {
-        console.warn('No se pudo guardar la sesión mock de Google:', e);
+        console.warn('[Auth] No se pudo guardar la sesión mock en localStorage:', e);
       }
 
       return {
