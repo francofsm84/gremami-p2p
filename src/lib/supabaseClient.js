@@ -321,6 +321,18 @@ export const authService = {
     return await supabase.auth.signOut();
   },
 
+  // Obtener sesión actual (procesa automáticamente tokens y hash OAuth de la URL)
+  getSession: async () => {
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      return data?.session || null;
+    } catch (e) {
+      console.warn('[Auth] Error obteniendo sesión:', e);
+      return null;
+    }
+  },
+
   // Usuario actual
   getUser: async () => {
     try {

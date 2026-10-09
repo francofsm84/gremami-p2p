@@ -18,7 +18,7 @@ import {
   recordDeliveryTransactionInSupabase,
   saveFiatPaymentConfigToSupabase 
 } from '../lib/supabase';
-import { authService, profileService, isSupabaseConfigured } from '../lib/supabaseClient';
+import { authService, profileService, isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 
 const AppContext = createContext();
 
@@ -88,8 +88,28 @@ export function AppProvider({ children }) {
 
   // User credentials & identity
   const [userPublicKey] = useState('valens1q7x8m9z4k0t3w2y5d8c1f6g9h2j4l7v9m3a');
-  const [userName, setUserName] = useState('SatoshiDev');
-  const [currentUser, setCurrentUser] = useState(null);
+  const [userName, setUserName] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gremami_auth_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const u = parsed?.user || parsed;
+        const name = u?.user_metadata?.full_name || u?.user_metadata?.name || u?.profile?.full_name;
+        if (name) return name;
+      }
+    } catch (e) {}
+    return 'SatoshiDev';
+  });
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gremami_auth_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed?.user || parsed;
+      }
+    } catch (e) {}
+    return null;
+  });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // 4. Interruptor de Estado en Tiempo Real (Online / Offline - Disponible para Trabajar)
@@ -242,54 +262,78 @@ export function AppProvider({ children }) {
 
   // Sincronización automática de Sesión de Supabase y Google OAuth
   useEffect(() => {
-    // 1. Verificar si hay usuario activo almacenado o devuelto por redirect OAuth
-    authService.getUser().then(async (user) => {
-      if (user) {
-        setCurrentUser(user);
+    // Helper centralizado para sincronizar inmediatamente la sesión de usuario
+    const handleUserSession = async (user) => {
+      if (!user) return;
+      setCurrentUser(user);
+      setIsAuthModalOpen(false);
+
+      const metaName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0];
+      const metaAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+
+      if (metaName) setUserName(metaName);
+      if (metaAvatar) {
+        setUserProfile((prev) => ({
+          ...prev,
+          name: metaName || prev.name,
+          avatar: metaAvatar
+        }));
+      }
+
+      try {
         const { profile, wallet } = await authService.syncUserSession(user);
-        const name = profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0];
-        const avatar = profile?.avatar_url || user.user_metadata?.avatar_url || user.user_metadata?.picture;
-        if (name) setUserName(name);
-        if (avatar) {
+        const finalName = profile?.full_name || metaName;
+        const finalAvatar = profile?.avatar_url || metaAvatar;
+        if (finalName) setUserName(finalName);
+        if (finalAvatar) {
           setUserProfile((prev) => ({
             ...prev,
-            avatar,
-            name: name || prev.name
+            name: finalName || prev.name,
+            avatar: finalAvatar
           }));
         }
         if (wallet && typeof wallet.valens_balance === 'number') {
           setBalance(wallet.valens_balance);
         }
+      } catch (err) {
+        console.warn('Advertencia al sincronizar perfil en segundo plano:', err);
       }
-    }).catch(() => {});
+    };
 
-    // 2. Escuchar eventos de inicio / cierre de sesión en tiempo real (Google OAuth Redirects)
-    const { data: authListener } = authService.onAuthStateChange((event, session) => {
+    // 1. Forzar procesamiento de tokens OAuth y lectura de sesión (hash en URL o storage)
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (session?.user) {
-        setCurrentUser(session.user);
-        authService.syncUserSession(session.user).then(({ profile, wallet }) => {
-          const name = profile?.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0];
-          const avatar = profile?.avatar_url || session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture;
-          if (name) setUserName(name);
-          if (avatar) {
-            setUserProfile((prev) => ({
-              ...prev,
-              avatar,
-              name: name || prev.name
-            }));
-          }
-          if (wallet && typeof wallet.valens_balance === 'number') {
-            setBalance(wallet.valens_balance);
-          }
-        }).catch((error) => {
-          console.error('Error al sincronizar el perfil después de iniciar sesión:', error);
-          showToast('La sesión inició, pero no se pudo sincronizar el perfil.', 'error');
-        });
+        handleUserSession(session.user);
+        // Limpiar hash de tokens en la URL para mantener limpia la dirección
+        if (typeof window !== 'undefined' && window.location.hash && window.location.hash.includes('access_token')) {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+      } else {
+        // Fallback a almacenamiento local si no hay sesión activa en Supabase
+        authService.getUser().then((user) => {
+          if (user) handleUserSession(user);
+        }).catch(() => {});
+      }
+    }).catch(() => {
+      authService.getUser().then((user) => {
+        if (user) handleUserSession(user);
+      }).catch(() => {});
+    });
+
+    // 2. Escuchar eventos de cambio de autenticación en tiempo real (OAuth Redirects, Login, Logout)
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        handleUserSession(session.user);
         if (event === 'SIGNED_IN') {
-          showToast('¡Sesión iniciada con Google / Supabase!', 'success');
+          const userNameLabel = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Google';
+          showToast(`¡Bienvenido, ${userNameLabel}! Sesión conectada.`, 'success');
+        }
+        if (typeof window !== 'undefined' && window.location.hash && window.location.hash.includes('access_token')) {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
+        localStorage.removeItem('gremami_auth_user');
       }
     });
 
