@@ -26,8 +26,51 @@ import {
   TrendingUp,
   CreditCard,
   Building2,
-  AlertTriangle
+  AlertTriangle,
+  GraduationCap,
+  ChevronRight,
+  CheckCircle2
 } from 'lucide-react';
+
+// Preguntas interactivas de la Mini-Trivia de Seguridad Cripto P2P
+const SECURITY_TRIVIA_QUESTIONS = [
+  {
+    id: 1,
+    title: 'Pregunta 1: Custodia y Frase Semilla',
+    question: 'Si un cadete, cliente o alguien que dice ser de "Soporte de Gremami" te pide tus 12 palabras de la frase semilla para "verificar tu cuenta", ¿qué debes hacer?',
+    options: [
+      'Dárselas rápido para no trabar el servicio ni perder mi cuenta',
+      'Jamás dárselas: es un intento de estafa y perdería el control total de mis fondos',
+      'Pasarle solo 6 de las 12 palabras para mayor seguridad'
+    ],
+    correctIndex: 1,
+    explanation: '¡Exacto! Tu frase semilla es tu clave maestra privada. Nadie del equipo de soporte ni usuarios te la pedirá jamás bajo ninguna circunstancia.'
+  },
+  {
+    id: 2,
+    title: 'Pregunta 2: Clave Pública vs Privada',
+    question: '¿Cuál de los siguientes datos es 100% seguro compartir públicamente con cualquier persona para recibir pagos o propinas?',
+    options: [
+      'Tu Clave Pública (Dirección de Billetera ValensCoin)',
+      'Tu Frase Semilla de 12 palabras de respaldo',
+      'La clave privada de tu firma digital'
+    ],
+    correctIndex: 0,
+    explanation: '¡Correcto! Tu clave pública funciona como un buzón postal o un CBU: cualquiera puede depositar en ella pero nadie puede retirar sin tu llave privada.'
+  },
+  {
+    id: 3,
+    title: 'Pregunta 3: Modelo Híbrido P2P',
+    question: '¿Por qué el modelo descentralizado P2P de Gremami beneficia a cadetes y comercios de Alta Gracia?',
+    options: [
+      'Porque aplica un algoritmo centralizado que retiene el 35% de cada pedido',
+      'Porque permite acuerdos directos entre partes con 0% de comisiones corporativas abusivas',
+      'Porque exige pagar suscripciones mensuales obligatorias para operar'
+    ],
+    correctIndex: 1,
+    explanation: '¡Excelente! En Gremami P2P el 100% del valor pactado queda para el prestador, combinando efectivo en mano con propinas soberanas en ValensCoin.'
+  }
+];
 
 export default function WalletScreen() {
   const {
@@ -46,15 +89,22 @@ export default function WalletScreen() {
 
   const isDark = theme === 'dark';
 
+  // Control de Secciones / Pestañas de la Vista: 'wallet' | 'school'
+  const [walletSectionTab, setWalletSectionTab] = useState('wallet');
+
+  // Estados de Copiado y Modales
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedAlias, setCopiedAlias] = useState(false);
   const [receiveTab, setReceiveTab] = useState('crypto'); // 'crypto' | 'fiat'
-  const [openModuleId, setOpenModuleId] = useState('keys'); // First module open by default
   const [showQrReceiveModal, setShowQrReceiveModal] = useState(false);
-  const [quizAnswer, setQuizAnswer] = useState(null);
-  const [quizClaimed, setQuizClaimed] = useState(false);
 
-  // Estados dinámicos para Billeteras Virtuales Argentinas
+  // Estados de Educación Cripto
+  const [openModuleId, setOpenModuleId] = useState('keys');
+  const [currentTriviaIndex, setCurrentTriviaIndex] = useState(0);
+  const [triviaAnswers, setTriviaAnswers] = useState({});
+  const [triviaClaimed, setTriviaClaimed] = useState({});
+
+  // Estados dinámicos para Billeteras Virtuales Argentinas (Fiat)
   const activeFiatProvider = userProfile?.fiatProvider || 'Mercado Pago';
   const activeFiatAlias = userProfile?.fiatAlias || userProfile?.aliasCbu || 'cadete.gremami.mp';
   const activeProviderInfo = ARGENTINE_FIAT_PROVIDERS.find((p) => p.name === activeFiatProvider) || ARGENTINE_FIAT_PROVIDERS[0];
@@ -166,12 +216,13 @@ export default function WalletScreen() {
     }
   };
 
-  const handleQuizSubmit = (optionIndex) => {
-    setQuizAnswer(optionIndex);
-    if (optionIndex === 1 && !quizClaimed) {
-      setQuizClaimed(true);
+  const handleTriviaAnswer = (questionId, optionIndex) => {
+    setTriviaAnswers((prev) => ({ ...prev, [questionId]: optionIndex }));
+    const currentQ = SECURITY_TRIVIA_QUESTIONS[currentTriviaIndex];
+    if (optionIndex === currentQ.correctIndex && !triviaClaimed[questionId]) {
+      setTriviaClaimed((prev) => ({ ...prev, [questionId]: true }));
       requestFaucet();
-      showToast('🎉 ¡Respuesta correcta! Has recibido un bonus educativo en ValensCoin', 'success');
+      showToast('🎉 ¡Respuesta correcta! Has recibido un bonus educativo en ValensCoin (+5 VAL)', 'success');
     }
   };
 
@@ -191,498 +242,672 @@ export default function WalletScreen() {
           <span>Volver al Inicio</span>
         </button>
         <span className={`text-[10px] font-mono px-2 py-0.5 rounded-lg border ${
-          isDark ? 'text-[#F0B90B] bg-[#121B2D] border-[#1F2D48]' : 'text-amber-700 bg-amber-50 border-amber-200 font-bold'
+          walletSectionTab === 'wallet'
+            ? isDark ? 'text-[#F0B90B] bg-[#121B2D] border-[#1F2D48]' : 'text-amber-700 bg-amber-50 border-amber-200 font-bold'
+            : isDark ? 'text-emerald-400 bg-[#064E3B]/40 border-emerald-500/40' : 'text-emerald-700 bg-emerald-50 border-emerald-300 font-bold'
         }`}>
-          Billetera ValensCoin
+          {walletSectionTab === 'wallet' ? '💳 Billetera ValensCoin' : '🎓 Escuela Cripto P2P'}
         </span>
       </div>
 
-      {/* 1. Tarjeta Destacada de Recaudación en Pesos ($ ARS) (Multimoneda) */}
-      <div className={`relative rounded-2xl border p-5 shadow-xl overflow-hidden transition-colors ${
-        isDark
-          ? 'bg-gradient-to-br from-[#064E3B] via-[#04332A] to-[#021A15] border-emerald-500/40 text-white'
-          : 'bg-gradient-to-br from-white via-emerald-50/70 to-teal-50 border-emerald-300 text-slate-900'
+      {/* ── 1. SELECTOR DE PESTAÑAS (TAB SWITCHER SUPERIOR) ── */}
+      <div className={`grid grid-cols-2 gap-1.5 p-1.5 rounded-2xl border shadow-md transition-all ${
+        isDark ? 'bg-[#121B2D] border-[#1F2D48]' : 'bg-slate-200/70 border-slate-300'
       }`}>
-        {/* Glow de ambientación financiera verde esmeralda */}
-        <div className="absolute top-0 right-0 w-44 h-44 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-teal-500/15 rounded-full blur-3xl pointer-events-none" />
+        <button
+          type="button"
+          onClick={() => setWalletSectionTab('wallet')}
+          className={`min-h-[44px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 active:scale-[0.98] ${
+            walletSectionTab === 'wallet'
+              ? 'bg-gradient-to-r from-[#F7931A] to-[#E07D09] text-black shadow-glow-orange font-black'
+              : isDark
+              ? 'text-[#8C9BB4] hover:text-white hover:bg-[#1A253D]'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+          }`}
+        >
+          <CreditCard className={`w-4 h-4 ${walletSectionTab === 'wallet' ? 'text-black' : 'text-[#F7931A]'}`} />
+          <span>💳 Billetera ValensCoin</span>
+        </button>
 
-        {/* Header fiduciario */}
-        <div className="flex items-center justify-between mb-3">
-          <div className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-full border text-xs ${
-            isDark ? 'bg-[#021A15]/90 border-emerald-500/40' : 'bg-emerald-100 border-emerald-300 text-emerald-900'
-          }`}>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[11px] font-bold">Cobros Fiduciarios P2P</span>
-          </div>
-          <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-            0% Comisión Apps
-          </span>
-        </div>
-
-        {/* Título y Saldo Total Recaudado ($ ARS) */}
-        <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
-          <p className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-emerald-300/80' : 'text-emerald-800'}`}>
-            Saldo Total Recaudado ($ ARS)
-          </p>
-          <span className="text-[10px] font-mono text-emerald-400 font-bold">
-            Cobros verificados
-          </span>
-        </div>
-
-        <div className="my-1.5 flex items-baseline space-x-2">
-          <h2 className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tight drop-shadow-sm">
-            ${totalRecaudadoArs.toLocaleString('es-AR')}
-          </h2>
-          <span className={`text-base font-bold font-mono ${isDark ? 'text-emerald-200' : 'text-emerald-900'}`}>ARS</span>
-        </div>
-        <p className={`text-xs font-medium ${isDark ? 'text-emerald-200/70' : 'text-slate-600'}`}>
-          Dinero local en mano y transferencias bancarias directas a tu Alias/CBU
-        </p>
-
-        {/* Desglose de Métricas para Modo Cadete / Comercio */}
-        <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-emerald-500/20">
-          <div className={`p-2.5 rounded-xl border ${
-            isDark ? 'bg-[#021A15]/70 border-emerald-500/30' : 'bg-white/80 border-emerald-200'
-          }`}>
-            <div className="flex items-center space-x-1.5 mb-1">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-              <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                Ganancias de la Semana
-              </span>
-            </div>
-            <p className="text-base font-bold font-mono text-emerald-400">
-              ${gananciasSemanaArs.toLocaleString('es-AR')} <span className="text-[10px] font-normal">ARS</span>
-            </p>
-          </div>
-
-          <div className={`p-2.5 rounded-xl border ${
-            isDark ? 'bg-[#021A15]/70 border-emerald-500/30' : 'bg-white/80 border-emerald-200'
-          }`}>
-            <div className="flex items-center space-x-1.5 mb-1">
-              <PiggyBank className="w-3.5 h-3.5 text-amber-400" />
-              <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                Comisiones de Apps Ahorradas
-              </span>
-            </div>
-            <p className="text-base font-bold font-mono text-amber-400">
-              +${comisionesAhorradasArs.toLocaleString('es-AR')} <span className="text-[10px] font-normal text-emerald-300">(30%)</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Botones de Acción de Cobro Fiduciario */}
-        <div className="mt-4 grid grid-cols-2 gap-2.5">
-          <button
-            onClick={() => {
-              setReceiveTab('fiat');
-              setShowQrReceiveModal(true);
-            }}
-            type="button"
-            className="min-h-[44px] flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition-all active:scale-[0.98]"
-          >
-            <DollarSign className="w-4 h-4 stroke-[2.5]" />
-            <span>Cobrar ($ ARS)</span>
-          </button>
-
-          <button
-            onClick={handleCopyAlias}
-            type="button"
-            className={`min-h-[44px] flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl text-xs font-bold border transition-all active:scale-[0.98] ${
-              copiedAlias
-                ? 'bg-emerald-500 text-black border-emerald-400'
-                : isDark
-                ? 'bg-[#021A15] hover:bg-[#032921] text-emerald-300 border-emerald-500/40'
-                : 'bg-white hover:bg-emerald-50 text-emerald-800 border-emerald-300'
-            }`}
-          >
-            {copiedAlias ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-            <span className="truncate">Copiar Alias ({activeFiatProvider})</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Panel de ValensCoin (Token de Gratitud y Aprendizaje 🪙) */}
-      <div className={`relative rounded-2xl border p-5 shadow-xl overflow-hidden transition-colors ${
-        isDark
-          ? 'bg-gradient-to-br from-[#121B2D] via-[#101726] to-[#070C1E] border-[#1F2D48]'
-          : 'bg-gradient-to-br from-white via-slate-50 to-amber-50/50 border-slate-200'
-      }`}>
-        {/* Glow overlay */}
-        <div className="absolute top-0 right-0 w-44 h-44 bg-[#F7931A]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[#E02424]/12 rounded-full blur-3xl pointer-events-none" />
-
-        {/* Network Badge */}
-        <div className="flex items-center justify-between mb-3">
-          <div className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-full border text-xs ${
-            isDark ? 'bg-[#070C1E]/90 border-[#1F2D48]' : 'bg-slate-100 border-slate-200'
-          }`}>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className={`text-[11px] font-mono ${isDark ? 'text-gray-200' : 'text-slate-700'}`}>Valens Testnet L1</span>
-          </div>
-          <span className={`text-[11px] font-mono ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>
-            Bloque #840,129
-          </span>
-        </div>
-
-        {/* Balance Title & Amount */}
-        <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
-          <p className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>
-            Saldo Disponible
-          </p>
-          <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border shadow-xs flex items-center gap-1 ${
-            isDark 
-              ? 'bg-gradient-to-r from-[#F7931A]/20 to-[#E02424]/20 text-[#F0B90B] border-[#F7931A]/40' 
-              : 'bg-amber-100 text-amber-900 border-amber-300 font-bold'
-          }`}>
-            <span>🪙 Token de Gratitud y Aprendizaje</span>
-          </span>
-        </div>
-
-        <div className="my-1.5 flex items-baseline space-x-2">
-          <h2 className="text-3xl sm:text-4xl font-black text-[#F0B90B] font-mono tracking-tight drop-shadow-sm">
-            {balance.toFixed(2)}
-          </h2>
-          <span className={`text-base font-bold font-mono ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>VALENS</span>
-        </div>
-        <p className={`text-xs font-mono font-medium ${isDark ? 'text-[#8C9BB4]' : 'text-slate-600'}`}>
-          ≈ ${(balance * 2.0).toFixed(2)} USD • ${(balance * 2500).toLocaleString('es-AR')} ARS (Tasa P2P de Referencia)
-        </p>
-
-        {/* Action Buttons: Recibir QR & Faucet */}
-        <div className="mt-5 grid grid-cols-2 gap-2.5">
-          <button
-            onClick={() => {
-              setReceiveTab('crypto');
-              setShowQrReceiveModal(true);
-            }}
-            type="button"
-            className={`min-h-[44px] flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl text-xs font-semibold border shadow-md transition-all active:scale-[0.98] ${
-              isDark
-                ? 'bg-[#1A253D] hover:bg-[#202E4B] text-white border-[#2D3E61]'
-                : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-300'
-            }`}
-          >
-            <QrCode className="w-4 h-4 text-[#F7931A]" />
-            <span>Recibir (QR)</span>
-          </button>
-
-          <button
-            onClick={requestFaucet}
-            type="button"
-            className="min-h-[44px] flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#F7931A] to-[#E07D09] hover:from-[#F0B90B] hover:to-[#F7931A] text-black text-xs font-bold shadow-glow-orange transition-all active:scale-[0.98]"
-          >
-            <Sparkles className="w-4 h-4 fill-black" />
-            <span>Grifo (+5 VAL)</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Public Key Card with One-Click Copy */}
-      <div className={`rounded-2xl border p-4 shadow-xl transition-colors ${
-        isDark ? 'bg-[#121B2D] border-[#1F2D48]' : 'bg-white border-slate-200'
-      }`}>
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-2">
-            <Key className="w-4 h-4 text-[#F7931A]" />
-            <span className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Tu Clave Pública (Dirección)</span>
-          </div>
-          <span className="text-[10px] text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-700/50 font-medium">
-            Segura para compartir
-          </span>
-        </div>
-
-        <p className={`text-[11px] mb-2.5 ${isDark ? 'text-[#8C9BB4]' : 'text-slate-600'}`}>
-          Esta es la dirección pública que otros utilizan para enviarte ValensCoins o verificar tus firmas sin intermediarios.
-        </p>
-
-        <div className={`flex items-center justify-between p-2.5 rounded-xl border ${
-          isDark ? 'bg-[#070C1E] border-[#1F2D48]' : 'bg-slate-50 border-slate-200'
-        }`}>
-          <span className="text-xs font-mono text-[#F0B90B] truncate mr-2 select-all font-semibold">
-            {userPublicKey}
-          </span>
-          <button
-            onClick={handleCopyPublicKey}
-            className={`p-2 rounded-lg transition-all flex items-center space-x-1 flex-shrink-0 ${
-              copiedKey
-                ? 'bg-emerald-500 text-black font-bold text-[10px]'
-                : isDark
-                ? 'bg-[#1A253D] text-gray-200 hover:text-white hover:bg-[#202E4B]'
-                : 'bg-slate-200 text-slate-800 hover:bg-slate-300'
-            }`}
-          >
-            {copiedKey ? (
-              <>
-                <Check className="w-3.5 h-3.5" />
-                <span>¡Copiado!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5" />
-                <span className="text-[10px]">Copiar</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Escuela Cripto P2P (Sección Desplegable Educativa Requerida con Barra de Progreso) */}
-      <div className={`rounded-2xl border p-4 shadow-xl transition-colors ${
-        isDark ? 'bg-[#121B2D] border-[#1F2D48]' : 'bg-white border-slate-200'
-      }`}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#F7931A]/20 border border-[#F7931A]/40 flex items-center justify-center">
-              <BookOpen className="w-4 h-4 text-[#F7931A]" />
-            </div>
-            <div>
-              <h3 className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Escuela Cripto P2P</h3>
-              <p className={`text-[11px] ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>Conceptos esenciales de soberanía y autocustodia</p>
-            </div>
-          </div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-            {completedModules.length}/{totalModules} Completados
-          </span>
-        </div>
-
-        {/* Barra de Progreso Visual Interactiva */}
-        <div className={`p-3 rounded-xl border mb-3 ${
-          isDark ? 'bg-[#070C1E] border-[#1F2D48]' : 'bg-amber-50/50 border-amber-200'
-        }`}>
-          <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className={`font-bold flex items-center gap-1.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-              <Award className="w-3.5 h-3.5 text-[#F7931A]" />
-              <span>Progreso de Educación Cripto: {completedModules.length}/{totalModules} Módulos ({progressPercentage}%)</span>
-            </span>
-            {isAllCompleted && (
-              <span className="text-[10px] font-black text-emerald-400 animate-pulse">
-                🎓 ¡Graduado Soberano!
-              </span>
-            )}
-          </div>
-
-          <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
-            <div 
-              className="h-full bg-gradient-to-r from-[#F7931A] via-amber-400 to-emerald-400 transition-all duration-500 ease-out rounded-full"
-              style={{ width: `${progressPercentage}%` }}
-            />
-          </div>
-
-          {isAllCompleted ? (
-            <p className="text-[10px] text-emerald-400 mt-2 font-semibold flex items-center gap-1">
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
-              ¡Felicitaciones! Has dominado las bases de autocustodia y micropagos soberanos en Alta Gracia.
-            </p>
-          ) : (
-            <p className={`text-[10px] mt-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Lee y marca cada módulo para afianzar tus conocimientos y desbloquear tu insignia comunitaria.
-            </p>
+        <button
+          type="button"
+          onClick={() => setWalletSectionTab('school')}
+          className={`min-h-[44px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 active:scale-[0.98] relative ${
+            walletSectionTab === 'school'
+              ? 'bg-gradient-to-r from-[#F0B90B] to-[#F7931A] text-black shadow-md font-black'
+              : isDark
+              ? 'text-[#8C9BB4] hover:text-white hover:bg-[#1A253D]'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+          }`}
+        >
+          <GraduationCap className={`w-4 h-4 ${walletSectionTab === 'school' ? 'text-black' : 'text-[#F0B90B]'}`} />
+          <span>🎓 Escuela Cripto</span>
+          {completedModules.length < totalModules && (
+            <span className="w-2 h-2 rounded-full bg-[#E02424] absolute top-2 right-2 animate-pulse" />
           )}
-        </div>
+        </button>
+      </div>
 
-        {/* Modules Accordion */}
-        <div className="space-y-2 mt-3">
-          {CRYPTO_SCHOOL_MODULES.map((module) => {
-            const isOpen = openModuleId === module.id;
-            const isCompleted = completedModules.includes(module.id);
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* ── SECCIÓN 1: PESTAÑA BILLETERA VALENSCOIN & COBROS FIAT ──        */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {walletSectionTab === 'wallet' && (
+        <div className="space-y-4 animate-fadeIn">
+          {/* 1.1 Bloque Fiat Existente (Cobros Fiduciarios P2P - Mantenido Intacto) */}
+          <div className={`relative rounded-2xl border p-5 shadow-xl overflow-hidden transition-colors ${
+            isDark
+              ? 'bg-gradient-to-br from-[#064E3B] via-[#04332A] to-[#021A15] border-emerald-500/40 text-white'
+              : 'bg-gradient-to-br from-white via-emerald-50/70 to-teal-50 border-emerald-300 text-slate-900'
+          }`}>
+            {/* Glow de ambientación financiera verde esmeralda */}
+            <div className="absolute top-0 right-0 w-44 h-44 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-teal-500/15 rounded-full blur-3xl pointer-events-none" />
 
-            return (
-              <div
-                key={module.id}
-                className={`rounded-xl border overflow-hidden transition-all ${
-                  isCompleted
-                    ? isDark ? 'border-emerald-500/40 bg-[#0A1A22]' : 'border-emerald-300 bg-emerald-50/30'
-                    : isDark ? 'border-[#1F2D48] bg-[#0A1128]' : 'border-slate-200 bg-slate-50'
+            {/* Header fiduciario */}
+            <div className="flex items-center justify-between mb-3">
+              <div className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-full border text-xs ${
+                isDark ? 'bg-[#021A15]/90 border-emerald-500/40' : 'bg-emerald-100 border-emerald-300 text-emerald-900'
+              }`}>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[11px] font-bold">Cobros Fiduciarios P2P</span>
+              </div>
+              <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                0% Comisión Apps
+              </span>
+            </div>
+
+            {/* Título y Saldo Total Recaudado ($ ARS) */}
+            <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+              <p className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-emerald-300/80' : 'text-emerald-800'}`}>
+                Saldo Total Recaudado ($ ARS)
+              </p>
+              <span className="text-[10px] font-mono text-emerald-400 font-bold">
+                Cobros verificados
+              </span>
+            </div>
+
+            <div className="my-1.5 flex items-baseline space-x-2">
+              <h2 className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tight drop-shadow-sm">
+                ${totalRecaudadoArs.toLocaleString('es-AR')}
+              </h2>
+              <span className={`text-base font-bold font-mono ${isDark ? 'text-emerald-200' : 'text-emerald-900'}`}>ARS</span>
+            </div>
+            <p className={`text-xs font-medium ${isDark ? 'text-emerald-200/70' : 'text-slate-600'}`}>
+              Dinero local en mano y transferencias bancarias directas a tu Alias/CBU
+            </p>
+
+            {/* Desglose de Métricas para Modo Cadete / Comercio */}
+            <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-emerald-500/20">
+              <div className={`p-2.5 rounded-xl border ${
+                isDark ? 'bg-[#021A15]/70 border-emerald-500/30' : 'bg-white/80 border-emerald-200'
+              }`}>
+                <div className="flex items-center space-x-1.5 mb-1">
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                    Ganancias de la Semana
+                  </span>
+                </div>
+                <p className="text-base font-bold font-mono text-emerald-400">
+                  ${gananciasSemanaArs.toLocaleString('es-AR')} <span className="text-[10px] font-normal">ARS</span>
+                </p>
+              </div>
+
+              <div className={`p-2.5 rounded-xl border ${
+                isDark ? 'bg-[#021A15]/70 border-emerald-500/30' : 'bg-white/80 border-emerald-200'
+              }`}>
+                <div className="flex items-center space-x-1.5 mb-1">
+                  <PiggyBank className="w-3.5 h-3.5 text-amber-400" />
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                    Comisiones de Apps Ahorradas
+                  </span>
+                </div>
+                <p className="text-base font-bold font-mono text-amber-400">
+                  +${comisionesAhorradasArs.toLocaleString('es-AR')} <span className="text-[10px] font-normal text-emerald-300">(30%)</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Botones de Acción de Cobro Fiduciario */}
+            <div className="mt-4 grid grid-cols-2 gap-2.5">
+              <button
+                onClick={() => {
+                  setReceiveTab('fiat');
+                  setShowQrReceiveModal(true);
+                }}
+                type="button"
+                className="min-h-[44px] flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition-all active:scale-[0.98]"
+              >
+                <DollarSign className="w-4 h-4 stroke-[2.5]" />
+                <span>Cobrar ($ ARS)</span>
+              </button>
+
+              <button
+                onClick={handleCopyAlias}
+                type="button"
+                className={`min-h-[44px] flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl text-xs font-bold border transition-all active:scale-[0.98] ${
+                  copiedAlias
+                    ? 'bg-emerald-500 text-black border-emerald-400'
+                    : isDark
+                    ? 'bg-[#021A15] hover:bg-[#032921] text-emerald-300 border-emerald-500/40'
+                    : 'bg-white hover:bg-emerald-50 text-emerald-800 border-emerald-300'
                 }`}
               >
-                <button
-                  type="button"
-                  onClick={() => setOpenModuleId(isOpen ? null : module.id)}
-                  className={`w-full p-3 flex items-center justify-between text-left transition-colors ${
-                    isDark ? 'hover:bg-[#121B2D]' : 'hover:bg-slate-100'
+                {copiedAlias ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span className="truncate">Copiar Alias ({activeFiatProvider})</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 1.2 Tarjeta de Saldo ValensCoin (Testnet L1) */}
+          <div className={`relative rounded-2xl border p-5 shadow-xl overflow-hidden transition-colors ${
+            isDark
+              ? 'bg-gradient-to-br from-[#121B2D] via-[#101726] to-[#070C1E] border-[#1F2D48]'
+              : 'bg-gradient-to-br from-white via-slate-50 to-amber-50/50 border-slate-200'
+          }`}>
+            {/* Glow overlay neón */}
+            <div className="absolute top-0 right-0 w-44 h-44 bg-[#F7931A]/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[#E02424]/12 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Network Badge */}
+            <div className="flex items-center justify-between mb-3">
+              <div className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-full border text-xs ${
+                isDark ? 'bg-[#070C1E]/90 border-[#1F2D48]' : 'bg-slate-100 border-slate-200'
+              }`}>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className={`text-[11px] font-mono ${isDark ? 'text-gray-200' : 'text-slate-700'}`}>Valens Testnet L1</span>
+              </div>
+              <span className={`text-[11px] font-mono ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>
+                Bloque #840,129
+              </span>
+            </div>
+
+            {/* Balance Title & Amount */}
+            <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+              <p className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>
+                Saldo Disponible
+              </p>
+              <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border shadow-xs flex items-center gap-1 ${
+                isDark 
+                  ? 'bg-gradient-to-r from-[#F7931A]/20 to-[#E02424]/20 text-[#F0B90B] border-[#F7931A]/40' 
+                  : 'bg-amber-100 text-amber-900 border-amber-300 font-bold'
+              }`}>
+                <span>🪙 Token de Gratitud y Reputación</span>
+              </span>
+            </div>
+
+            <div className="my-1.5 flex items-baseline space-x-2">
+              <h2 className="text-3xl sm:text-4xl font-black text-[#F0B90B] font-mono tracking-tight drop-shadow-sm">
+                {balance.toFixed(2)}
+              </h2>
+              <span className={`text-base font-bold font-mono ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>VALENS</span>
+            </div>
+            <p className={`text-xs font-mono font-medium ${isDark ? 'text-[#8C9BB4]' : 'text-slate-600'}`}>
+              ≈ ${(balance * 2.0).toFixed(2)} USD • ${(balance * 2500).toLocaleString('es-AR')} ARS (Tasa P2P de Referencia)
+            </p>
+
+            {/* Botones de Acción: Recibir (QR) & Grifo (+5 VAL) */}
+            <div className="mt-5 grid grid-cols-2 gap-2.5">
+              <button
+                onClick={() => {
+                  setReceiveTab('crypto');
+                  setShowQrReceiveModal(true);
+                }}
+                type="button"
+                className={`min-h-[44px] flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl text-xs font-semibold border shadow-md transition-all active:scale-[0.98] ${
+                  isDark
+                    ? 'bg-[#1A253D] hover:bg-[#202E4B] text-white border-[#2D3E61]'
+                    : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-300'
+                }`}
+              >
+                <QrCode className="w-4 h-4 text-[#F7931A]" />
+                <span>Recibir (QR)</span>
+              </button>
+
+              <button
+                onClick={requestFaucet}
+                type="button"
+                className="min-h-[44px] flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#F7931A] to-[#E07D09] hover:from-[#F0B90B] hover:to-[#F7931A] text-black text-xs font-bold shadow-glow-orange transition-all active:scale-[0.98]"
+              >
+                <Sparkles className="w-4 h-4 fill-black" />
+                <span>Grifo (+5 VAL)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 1.3 Dirección Pública (Clave Pública) con Copiado de 1 Clic */}
+          <div className={`rounded-2xl border p-4 shadow-xl transition-colors ${
+            isDark ? 'bg-[#121B2D] border-[#1F2D48]' : 'bg-white border-slate-200'
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <Key className="w-4 h-4 text-[#F7931A]" />
+                <span className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Tu Clave Pública (Dirección)</span>
+              </div>
+              <span className="text-[10px] text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-700/50 font-medium">
+                Segura para compartir
+              </span>
+            </div>
+
+            <p className={`text-[11px] mb-2.5 ${isDark ? 'text-[#8C9BB4]' : 'text-slate-600'}`}>
+              Esta es tu dirección pública en Valens L1 para recibir tokens, propinas o verificar tus firmas sin intermediarios.
+            </p>
+
+            <div className={`flex items-center justify-between p-2.5 rounded-xl border ${
+              isDark ? 'bg-[#070C1E] border-[#1F2D48]' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <span className="text-xs font-mono text-[#F0B90B] truncate mr-2 select-all font-semibold">
+                {userPublicKey}
+              </span>
+              <button
+                onClick={handleCopyPublicKey}
+                className={`p-2 rounded-lg transition-all flex items-center space-x-1 flex-shrink-0 ${
+                  copiedKey
+                    ? 'bg-emerald-500 text-black font-bold text-[10px]'
+                    : isDark
+                    ? 'bg-[#1A253D] text-gray-200 hover:text-white hover:bg-[#202E4B]'
+                    : 'bg-slate-200 text-slate-800 hover:bg-slate-300'
+                }`}
+              >
+                {copiedKey ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>¡Copiado!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span className="text-[10px]">Copiar</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* 1.4 Historial de Movimientos On-Chain */}
+          <div className={`rounded-2xl border p-4 shadow-xl transition-colors ${
+            isDark ? 'bg-[#121B2D] border-[#1F2D48]' : 'bg-white border-slate-200'
+          }`}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                Historial de Movimientos On-Chain
+              </h3>
+              <span className={`text-[10px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                {transactions.length} transacciones
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {transactions.map((tx) => (
+                <div
+                  key={tx.id}
+                  className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-colors ${
+                    isDark ? 'bg-[#070C1E] border-[#1F2D48]' : 'bg-slate-50 border-slate-200'
                   }`}
                 >
                   <div className="flex items-center space-x-2.5 min-w-0 pr-2">
-                    <div className={`p-1.5 rounded-lg border ${
-                      isCompleted 
-                        ? 'bg-emerald-500/20 border-emerald-500/50' 
-                        : isDark ? 'bg-[#070C1E] border-[#1F2D48]' : 'bg-white border-slate-200'
-                    }`}>
-                      {getModuleIcon(module.icon)}
+                    <div
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        tx.amount > 0
+                          ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/40'
+                          : 'bg-[#F7931A]/20 text-[#F7931A] border border-[#F7931A]/30'
+                      }`}
+                    >
+                      {tx.amount > 0 ? (
+                        <ArrowDownLeft className="w-4 h-4" />
+                      ) : (
+                        <ArrowUpRight className="w-4 h-4" />
+                      )}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <h4 className={`text-xs font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                          {module.title}
-                        </h4>
-                        {isCompleted && (
-                          <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-600/50">
-                            ✓ Completado
-                          </span>
-                        )}
-                      </div>
-                      <p className={`text-[10px] ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>
-                        {module.subtitle}
+                    <div className="min-w-0">
+                      <p className={`font-semibold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{tx.title}</p>
+                      <p className={`text-[10px] font-mono truncate ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>
+                        {tx.date} • {tx.hash}
                       </p>
                     </div>
                   </div>
-                  {isOpen ? (
-                    <ChevronUp className="w-4 h-4 text-[#F7931A] flex-shrink-0" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-[#8C9BB4] flex-shrink-0" />
-                  )}
-                </button>
-
-                {isOpen && (
-                  <div className={`p-3 border-t space-y-2.5 text-xs leading-relaxed animate-fadeIn ${
-                    isDark ? 'bg-[#070C1E]/90 border-[#1F2D48] text-gray-300' : 'bg-white border-slate-200 text-slate-700'
-                  }`}>
-                    <p className={`font-medium p-2.5 rounded-xl border ${
-                      isDark ? 'text-white bg-[#121B2D] border-[#1F2D48]' : 'text-slate-900 bg-amber-50/50 border-amber-200'
-                    }`}>
-                      💡 {module.summary}
+                  <div className="text-right flex-shrink-0">
+                    <p
+                      className={`font-mono font-bold ${
+                        tx.amount > 0 ? 'text-emerald-400' : 'text-[#F0B90B]'
+                      }`}
+                    >
+                      {tx.amount > 0 ? `+${tx.amount.toFixed(2)}` : tx.amount.toFixed(2)} VAL
                     </p>
-                    <ul className="space-y-1.5 pl-1">
-                      {module.points.map((pt, i) => (
-                        <li key={i} className="flex items-start space-x-2 text-[11px]">
-                          <span className="text-[#F7931A] font-bold">•</span>
-                          <span className={isDark ? 'text-gray-200' : 'text-slate-700'}>{pt}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    {/* Botón interactivo para marcar módulo como completado */}
-                    <div className="pt-2 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => toggleModuleCompletion(module.id)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 ${
-                          isCompleted
-                            ? 'bg-emerald-500 text-black shadow-sm'
-                            : isDark
-                            ? 'bg-[#1A253D] hover:bg-[#223254] text-amber-400 border border-amber-500/40'
-                            : 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
-                        }`}
-                      >
-                        {isCompleted ? (
-                          <>
-                            <Check className="w-3.5 h-3.5" />
-                            <span>✓ Módulo Completado</span>
-                          </>
-                        ) : (
-                          <>
-                            <Award className="w-3.5 h-3.5 text-[#F7931A]" />
-                            <span>Marcar como Leído y Aprobado</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
+                    <span className={`text-[9px] ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>{tx.status}</span>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Interactive Mini-Quiz */}
-        <div className={`mt-4 p-3.5 rounded-xl border ${
-          isDark
-            ? 'bg-gradient-to-br from-[#18243C] to-[#0A1128] border-[#F7931A]/30'
-            : 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200'
-        }`}>
-          <div className="flex items-center space-x-2 mb-2 text-[#F0B90B]">
-            <HelpCircle className="w-4 h-4 text-[#F7931A]" />
-            <span className={`text-xs font-bold ${isDark ? 'text-[#F0B90B]' : 'text-amber-900'}`}>Mini-Trivia de Seguridad</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <p className={`text-xs mb-2.5 ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>
-            Si un cadete o soporte de una app te pide tus 12 palabras de la frase semilla para "verificar tu cuenta", ¿qué debes hacer?
-          </p>
-          <div className="space-y-1.5">
-            {[
-              'Dárselas rápido para no perder mi cuenta',
-              'Jamás dárselas: es un intento de estafa y perdería todos mis fondos',
-              'Pasarle solo 6 de las 12 palabras'
-            ].map((option, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleQuizSubmit(idx)}
-                className={`w-full text-left p-2 rounded-xl text-[11px] transition-all border ${
-                  quizAnswer === idx
-                    ? idx === 1
-                      ? 'bg-emerald-950/70 border-emerald-500 text-emerald-300 font-bold'
-                      : 'bg-rose-950/70 border-rose-500 text-rose-300'
-                    : isDark
-                    ? 'bg-[#121B2D] border-[#1F2D48] text-gray-300 hover:border-[#2D3E61]'
-                    : 'bg-white border-slate-200 text-slate-800 hover:border-amber-400'
-                }`}
-              >
-                <span>{['A', 'B', 'C'][idx]}. {option}</span>
-              </button>
-            ))}
-          </div>
-          {quizClaimed && (
-            <p className="mt-2 text-[11px] text-emerald-400 font-semibold flex items-center">
-              <Check className="w-3.5 h-3.5 mr-1" />
-              ¡Excelente! Recordá: Tu frase semilla es solo tuya.
-            </p>
-          )}
         </div>
-      </div>
+      )}
 
-      {/* Transaction History */}
-      <div className={`rounded-2xl border p-4 shadow-xl transition-colors ${
-        isDark ? 'bg-[#121B2D] border-[#1F2D48]' : 'bg-white border-slate-200'
-      }`}>
-        <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-          Historial de Movimientos On-Chain
-        </h3>
-        <div className="space-y-2">
-          {transactions.map((tx) => (
-            <div
-              key={tx.id}
-              className={`p-3 rounded-xl border flex items-center justify-between text-xs ${
-                isDark ? 'bg-[#070C1E] border-[#1F2D48]' : 'bg-slate-50 border-slate-200'
-              }`}
-            >
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* ── SECCIÓN 2: PESTAÑA ESCUELA CRIPTO P2P (VISTA EDUCATIVA) ──     */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {walletSectionTab === 'school' && (
+        <div className="space-y-4 animate-fadeIn">
+          {/* 2.1 Encabezado de Progreso de Educación Cripto */}
+          <div className={`rounded-2xl border p-5 shadow-xl transition-colors relative overflow-hidden ${
+            isDark ? 'bg-[#121B2D] border-[#1F2D48]' : 'bg-white border-slate-200'
+          }`}>
+            <div className="absolute top-0 right-0 w-36 h-36 bg-[#F7931A]/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-2.5">
-                <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    tx.amount > 0
-                      ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/40'
-                      : 'bg-[#F7931A]/20 text-[#F7931A] border border-[#F7931A]/30'
-                  }`}
-                >
-                  {tx.amount > 0 ? (
-                    <ArrowDownLeft className="w-4 h-4" />
-                  ) : (
-                    <ArrowUpRight className="w-4 h-4" />
-                  )}
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#F7931A] to-[#F0B90B] p-0.5 shadow-glow-orange flex items-center justify-center">
+                  <div className={`w-full h-full rounded-[10px] flex items-center justify-center ${isDark ? 'bg-[#0A1128]' : 'bg-white'}`}>
+                    <GraduationCap className="w-4 h-4 text-[#F7931A]" />
+                  </div>
                 </div>
                 <div>
-                  <p className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{tx.title}</p>
-                  <p className={`text-[10px] font-mono ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>
-                    {tx.date} • {tx.hash}
+                  <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Escuela Cripto P2P</h3>
+                  <p className={`text-[11px] ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>
+                    Educación soberana y autocustodia para Alta Gracia
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p
-                  className={`font-mono font-bold ${
-                    tx.amount > 0 ? 'text-emerald-400' : 'text-[#F0B90B]'
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+                isAllCompleted 
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
+                  : isDark ? 'bg-[#070C1E] text-amber-400 border-amber-500/30' : 'bg-amber-100 text-amber-900 border-amber-300'
+              }`}>
+                {completedModules.length}/{totalModules} Completados
+              </span>
+            </div>
+
+            {/* Barra de Progreso Interactiva */}
+            <div className={`p-3.5 rounded-xl border ${
+              isDark ? 'bg-[#070C1E] border-[#1F2D48]' : 'bg-amber-50/50 border-amber-200'
+            }`}>
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className={`font-bold flex items-center gap-1.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                  <Award className="w-4 h-4 text-[#F7931A]" />
+                  <span>Progreso: {completedModules.length} de {totalModules} Módulos ({progressPercentage}%)</span>
+                </span>
+                {isAllCompleted && (
+                  <span className="text-[10px] font-black text-emerald-400 animate-pulse">
+                    🎓 ¡Graduado Soberano!
+                  </span>
+                )}
+              </div>
+
+              <div className={`w-full h-2.5 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                <div 
+                  className="h-full bg-gradient-to-r from-[#F7931A] via-[#F0B90B] to-emerald-400 transition-all duration-500 ease-out rounded-full"
+                  style={{ width: `${progressPercentage}%` }}
+                />
+              </div>
+
+              {isAllCompleted ? (
+                <p className="text-[11px] text-emerald-400 mt-2.5 font-semibold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <span>¡Felicitaciones! Has completado todos los módulos formativos de soberanía monetaria.</span>
+                </p>
+              ) : (
+                <p className={`text-[10.5px] mt-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Abre y marca cada módulo para afianzar tus conocimientos de seguridad y desbloquear recompensas comunitarias.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* 2.2 Módulos Educativos Colapsables (Acordeón de 4 Módulos) */}
+          <div className="space-y-2.5">
+            <h4 className={`text-xs font-bold uppercase tracking-wider px-1 ${isDark ? 'text-[#8C9BB4]' : 'text-slate-600'}`}>
+              Módulos Formativos (Toca para desplegar)
+            </h4>
+
+            {CRYPTO_SCHOOL_MODULES.map((module) => {
+              const isOpen = openModuleId === module.id;
+              const isCompleted = completedModules.includes(module.id);
+
+              return (
+                <div
+                  key={module.id}
+                  className={`rounded-2xl border overflow-hidden transition-all shadow-md ${
+                    isCompleted
+                      ? isDark ? 'border-emerald-500/40 bg-[#0A1A22]' : 'border-emerald-300 bg-emerald-50/40'
+                      : isDark ? 'border-[#1F2D48] bg-[#121B2D]' : 'border-slate-200 bg-white'
                   }`}
                 >
-                  {tx.amount > 0 ? `+${tx.amount.toFixed(2)}` : tx.amount.toFixed(2)} VAL
-                </p>
-                <span className={`text-[9px] ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>{tx.status}</span>
+                  <button
+                    type="button"
+                    onClick={() => setOpenModuleId(isOpen ? null : module.id)}
+                    className={`w-full p-3.5 flex items-center justify-between text-left transition-colors ${
+                      isDark ? 'hover:bg-[#18243C]' : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3 min-w-0 pr-2">
+                      <div className={`p-2 rounded-xl border flex-shrink-0 ${
+                        isCompleted 
+                          ? 'bg-emerald-500/20 border-emerald-500/50' 
+                          : isDark ? 'bg-[#070C1E] border-[#1F2D48]' : 'bg-slate-100 border-slate-200'
+                      }`}>
+                        {getModuleIcon(module.icon)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                            {module.title}
+                          </h4>
+                          {isCompleted && (
+                            <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/70 px-1.5 py-0.5 rounded border border-emerald-600/50">
+                              ✓ Completado
+                            </span>
+                          )}
+                        </div>
+                        <p className={`text-[10.5px] truncate mt-0.5 ${isDark ? 'text-[#8C9BB4]' : 'text-slate-500'}`}>
+                          {module.subtitle}
+                        </p>
+                      </div>
+                    </div>
+                    {isOpen ? (
+                      <ChevronUp className="w-4 h-4 text-[#F7931A] flex-shrink-0" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-[#8C9BB4] flex-shrink-0" />
+                    )}
+                  </button>
+
+                  {isOpen && (
+                    <div className={`p-4 border-t space-y-3 text-xs leading-relaxed animate-fadeIn ${
+                      isDark ? 'bg-[#070C1E]/95 border-[#1F2D48] text-gray-300' : 'bg-slate-50/80 border-slate-200 text-slate-700'
+                    }`}>
+                      <div className={`p-3 rounded-xl border ${
+                        isDark ? 'text-white bg-[#121B2D] border-[#1F2D48]' : 'text-slate-900 bg-amber-50/70 border-amber-200'
+                      }`}>
+                        <p className="font-semibold text-xs flex items-start gap-1.5">
+                          <span className="text-base">💡</span>
+                          <span>{module.summary}</span>
+                        </p>
+                      </div>
+
+                      <div className="space-y-1.5 pl-1">
+                        <p className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                          Puntos Clave del Módulo:
+                        </p>
+                        <ul className="space-y-1.5">
+                          {module.points.map((pt, i) => (
+                            <li key={i} className="flex items-start space-x-2 text-[11px]">
+                              <span className="text-[#F7931A] font-bold">•</span>
+                              <span className={isDark ? 'text-gray-200' : 'text-slate-700'}>{pt}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Botón interactivo para marcar módulo como completado */}
+                      <div className="pt-2 flex items-center justify-between border-t border-slate-700/30">
+                        <span className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {isCompleted ? 'Módulo verificado' : 'Completa la lectura'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => toggleModuleCompletion(module.id)}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 ${
+                            isCompleted
+                              ? 'bg-emerald-500 text-black shadow-sm font-black'
+                              : isDark
+                              ? 'bg-[#1A253D] hover:bg-[#223254] text-amber-400 border border-amber-500/40'
+                              : 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
+                          }`}
+                        >
+                          {isCompleted ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              <span>✓ Módulo Aprobado</span>
+                            </>
+                          ) : (
+                            <>
+                              <Award className="w-3.5 h-3.5 text-[#F7931A]" />
+                              <span>Marcar como Leído y Aprobado</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 2.3 Mini-Trivia de Seguridad Interactiva */}
+          <div className={`p-4 rounded-2xl border shadow-xl transition-all ${
+            isDark
+              ? 'bg-gradient-to-br from-[#121B2D] via-[#101726] to-[#0A1128] border-[#F7931A]/30'
+              : 'bg-gradient-to-br from-white via-amber-50/50 to-orange-50/40 border-amber-200'
+          }`}>
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center space-x-2 text-[#F0B90B]">
+                <HelpCircle className="w-4 h-4 text-[#F7931A]" />
+                <span className={`text-xs font-bold ${isDark ? 'text-[#F0B90B]' : 'text-amber-900'}`}>
+                  Mini-Trivia de Seguridad Cripto
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                {SECURITY_TRIVIA_QUESTIONS.map((q, idx) => (
+                  <button
+                    key={q.id}
+                    type="button"
+                    onClick={() => setCurrentTriviaIndex(idx)}
+                    className={`w-6 h-6 rounded-lg text-[10px] font-bold border transition-all ${
+                      currentTriviaIndex === idx
+                        ? 'bg-[#F7931A] text-black border-[#F7931A]'
+                        : triviaClaimed[q.id]
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                        : isDark
+                        ? 'bg-[#070C1E] text-slate-400 border-[#1F2D48]'
+                        : 'bg-white text-slate-600 border-slate-300'
+                    }`}
+                  >
+                    {idx + 1}
+                  </button>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Modal Multimoneda: Recibir / Cobrar (2 Pestañas: ValensCoin y Pesos ARS) */}
+            {/* Pregunta Activa */}
+            {(() => {
+              const currentQ = SECURITY_TRIVIA_QUESTIONS[currentTriviaIndex];
+              const selectedAnswer = triviaAnswers[currentQ.id];
+              const isAnswered = selectedAnswer !== undefined;
+              const isCorrect = selectedAnswer === currentQ.correctIndex;
+
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[10px] font-mono font-bold uppercase tracking-wider ${
+                      isDark ? 'text-amber-400' : 'text-amber-700'
+                    }`}>
+                      {currentQ.title}
+                    </span>
+                    <span className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      {currentTriviaIndex + 1} de {SECURITY_TRIVIA_QUESTIONS.length}
+                    </span>
+                  </div>
+
+                  <p className={`text-xs font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                    {currentQ.question}
+                  </p>
+
+                  <div className="space-y-2">
+                    {currentQ.options.map((option, idx) => {
+                      const isOptionSelected = selectedAnswer === idx;
+                      let btnStyle = isDark
+                        ? 'bg-[#070C1E] border-[#1F2D48] text-gray-300 hover:border-[#2D3E61]'
+                        : 'bg-white border-slate-200 text-slate-800 hover:border-amber-400';
+
+                      if (isAnswered) {
+                        if (idx === currentQ.correctIndex) {
+                          btnStyle = 'bg-emerald-950/70 border-emerald-500 text-emerald-300 font-bold';
+                        } else if (isOptionSelected) {
+                          btnStyle = 'bg-rose-950/70 border-rose-500 text-rose-300';
+                        }
+                      }
+
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => handleTriviaAnswer(currentQ.id, idx)}
+                          className={`w-full text-left p-2.5 rounded-xl text-[11px] transition-all border flex items-start gap-2 ${btnStyle}`}
+                        >
+                          <span className="font-bold flex-shrink-0">{['A', 'B', 'C'][idx]}.</span>
+                          <span>{option}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Explicación y feedback didáctico */}
+                  {isAnswered && (
+                    <div className={`p-3 rounded-xl border text-xs animate-fadeIn ${
+                      isCorrect 
+                        ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' 
+                        : 'bg-rose-500/10 border-rose-500/40 text-rose-300'
+                    }`}>
+                      <p className="font-bold mb-1 flex items-center gap-1.5">
+                        {isCorrect ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <AlertTriangle className="w-4 h-4 text-rose-400" />}
+                        <span>{isCorrect ? '¡Respuesta Correcta!' : 'Respuesta Incorrecta'}</span>
+                      </p>
+                      <p className="text-[10.5px] leading-relaxed">
+                        {currentQ.explanation}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Controles Siguiente / Anterior */}
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      disabled={currentTriviaIndex === 0}
+                      onClick={() => setCurrentTriviaIndex((prev) => Math.max(0, prev - 1))}
+                      className="text-xs text-slate-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none py-1 px-2"
+                    >
+                      ← Anterior
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={currentTriviaIndex === SECURITY_TRIVIA_QUESTIONS.length - 1}
+                      onClick={() => setCurrentTriviaIndex((prev) => Math.min(SECURITY_TRIVIA_QUESTIONS.length - 1, prev + 1))}
+                      className="text-xs text-[#F0B90B] hover:underline disabled:opacity-30 disabled:pointer-events-none py-1 px-2 font-bold flex items-center gap-1"
+                    >
+                      <span>Siguiente</span>
+                      <span>→</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* ── MODAL MULTIMONEDA: RECIBIR VALENSCOIN Y PESOS ($ ARS) ──       */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
       {showQrReceiveModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
           <div className={`border rounded-2xl max-w-sm w-full p-5 shadow-2xl relative text-center max-h-[90dvh] overflow-y-auto ${
