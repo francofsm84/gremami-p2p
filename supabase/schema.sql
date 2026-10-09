@@ -39,6 +39,11 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Compatibilidad con proyectos donde profiles se creó antes de vehicle_type.
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS vehicle_type TEXT NOT NULL DEFAULT 'moto'
+  CHECK (vehicle_type IN ('caminando', 'bicicleta', 'moto', 'auto', 'flete'));
+
 -- Vista Segura: Perfiles Públicos con Enmascaramiento de WhatsApp Sensible
 CREATE OR REPLACE VIEW public.profiles_public AS
   SELECT 

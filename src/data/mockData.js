@@ -428,7 +428,7 @@ const DEMAND_CATEGORIES = [
 const buildInitialLiveRequests = () => {
   const list = [];
 
-  DEMAND_CATEGORIES.forEach((cat) => {
+  DEMAND_CATEGORIES.forEach((cat, categoryIndex) => {
     for (let i = 0; i < 50; i++) {
       const zone = GEOGRAPHIC_ZONES[i % GEOGRAPHIC_ZONES.length];
       const clientName = CLIENT_NAMES_POOL[(i + cat.descs.length) % CLIENT_NAMES_POOL.length];
@@ -443,8 +443,11 @@ const buildInitialLiveRequests = () => {
       const desc = cat.descs[i % cat.descs.length];
       const jitterLat = (((i * 2) % 7) - 3) * 0.0009;
       const jitterLng = (((i * 5) % 7) - 3) * 0.0009;
-      const lat = Number((zone.lat + jitterLat).toFixed(6));
-      const lng = Number((zone.lng + jitterLng).toFixed(6));
+      const categoryAngle = (categoryIndex / DEMAND_CATEGORIES.length) * Math.PI * 2;
+      const categoryOffsetLat = Math.sin(categoryAngle) * 0.0016;
+      const categoryOffsetLng = Math.cos(categoryAngle) * 0.0016;
+      const lat = Number((zone.lat + jitterLat + categoryOffsetLat).toFixed(6));
+      const lng = Number((zone.lng + jitterLng + categoryOffsetLng).toFixed(6));
 
       const distanceKm = `${zone.km.toFixed(1)} km`;
       const distanceMeters = Math.round(zone.km * 1000);
@@ -483,15 +486,15 @@ const buildInitialLiveRequests = () => {
         category: cat.id,
         categoryLabel: cat.label,
         description: (id === 'req-live-101') ? 'Retirar medicamento en Farmacia Belgrano y entregar en B° Pellegrini'
-          : (id === 'req-live-102') ? 'Cadete con moto para llevar 2 pedidos gastronómicos calientes a B° Cámara'
+          : (id === 'req-live-102') ? 'Cadete en bicicleta para llevar 2 pedidos gastronómicos calientes a B° Cámara'
           : `${desc} en ${zone.label}`,
         origin: (id === 'req-live-101') ? 'Alta Gracia Centro, Farmacia Belgrano 180' : `${zone.label}, Calle Principal ${100 + (i * 20)}`,
         destination: (id === 'req-live-101') ? 'B° Pellegrini 320, Alta Gracia' : `Entrega en ${zone.locality}, B° Residencial`,
         scheduledTime: (id === 'req-live-101') ? 'Inmediato' : scheduledTime,
         estimatedFeeArs,
         estimatedFeeValens,
-        lat: (id === 'req-live-101') ? -31.6529 : lat,
-        lng: (id === 'req-live-101') ? -64.4283 : lng,
+        lat,
+        lng,
         distanceKm: (id === 'req-live-101') ? '0.5 km' : distanceKm,
         distanceMeters: (id === 'req-live-101') ? 500 : distanceMeters,
         locality: (id === 'req-live-101') ? 'Alta Gracia' : zone.locality,
@@ -521,7 +524,7 @@ const PEER_CATEGORY_CONFIG = [
 
 const buildInitialPeers = () => {
   const list = [];
-  PEER_CATEGORY_CONFIG.forEach((cat) => {
+  PEER_CATEGORY_CONFIG.forEach((cat, categoryIndex) => {
     for (let i = 0; i < 50; i++) {
       const zone = GEOGRAPHIC_ZONES[i % GEOGRAPHIC_ZONES.length];
       const name = PEER_NAMES[i % PEER_NAMES.length];
@@ -575,8 +578,11 @@ const buildInitialPeers = () => {
 
       const jitterLat = ((i % 7) - 3) * 0.0008;
       const jitterLng = (((i * 3) % 7) - 3) * 0.0008;
-      const finalLat = Number((zone.lat + jitterLat).toFixed(6));
-      const finalLng = Number((zone.lng + jitterLng).toFixed(6));
+      const categoryAngle = (categoryIndex / PEER_CATEGORY_CONFIG.length) * Math.PI * 2;
+      const categoryOffsetLat = Math.sin(categoryAngle) * 0.0016;
+      const categoryOffsetLng = Math.cos(categoryAngle) * 0.0016;
+      const finalLat = Number((zone.lat + jitterLat + categoryOffsetLat).toFixed(6));
+      const finalLng = Number((zone.lng + jitterLng + categoryOffsetLng).toFixed(6));
 
       const distanceKm = `${zone.km.toFixed(1)} km`;
       const distanceMeters = Math.round(zone.km * 1000);
@@ -998,4 +1004,3 @@ export const INITIAL_DEX_ORDERS = [
     timestamp: 'Hace 4 horas'
   }
 ];
-

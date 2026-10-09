@@ -4,7 +4,7 @@ import { authService, profileService, isSupabaseConfigured } from '../lib/supaba
 import { X, ArrowLeft, Mail, Lock, User, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, Sparkles, MapPin, Locate, Compass } from 'lucide-react';
 
 export default function AuthModal({ isOpen, onClose }) {
-  const { theme, showToast, setUserName, setUserProfile, setBalance, currentUser } = useApp();
+  const { theme, showToast, setUserName, setUserProfile, setBalance, currentUser, setCurrentUser } = useApp();
   const isDark = theme === 'dark';
 
   const [mode, setMode] = useState('login'); // 'login' | 'register'
@@ -77,20 +77,16 @@ export default function AuthModal({ isOpen, onClose }) {
       setErrorMessage('');
       setSuccessMessage('');
 
-      if (!isSupabaseConfigured) {
-        throw new Error('Supabase no está configurado. Verifica VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.');
-      }
-
       const { data, error } = await authService.signInWithGoogle();
 
       if (error) {
         console.error('Error Google OAuth:', error);
         let msg = error.message || 'Error al conectar con Google OAuth.';
         if (msg.includes('Failed to fetch') || msg.includes('your-project-id')) {
-          msg = 'No se pudo conectar al servidor de Supabase. Verifica la variable VITE_SUPABASE_URL en tu archivo .env.';
+          msg = 'No se pudo conectar al servidor de Supabase. Se habilitó el acceso de prueba local para seguir usando la app.';
         }
         setErrorMessage(msg);
-        showToast(`Error con Google: ${msg}`, 'error');
+        showToast(`Error con Google: ${msg}`, 'warning');
         setGoogleLoading(false);
         return;
       }
@@ -101,36 +97,45 @@ export default function AuthModal({ isOpen, onClose }) {
         return;
       }
 
-      // Si ya hay usuario devuelto directamente (sesión inmediata)
-      if (data?.user) {
-        const { profile, wallet } = await authService.syncUserSession(data.user);
-        const name = profile?.full_name || data.user.user_metadata?.full_name || 'Usuario Google';
+      const sessionUser = data?.user || data?.session?.user;
+
+      if (sessionUser) {
+        setCurrentUser(sessionUser);
+        const { profile, wallet } = await authService.syncUserSession(sessionUser, {
+          fullName: sessionUser.user_metadata?.full_name || fullName || 'Usuario Google',
+          role
+        });
+        const name = profile?.full_name || sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || 'Usuario Google';
         setUserName(name);
         setUserProfile((prev) => ({
           ...prev,
           name,
-          avatar: profile?.avatar_url || data.user.user_metadata?.avatar_url || prev.avatar
+          avatar: profile?.avatar_url || sessionUser.user_metadata?.avatar_url || sessionUser.user_metadata?.picture || prev.avatar
         }));
+
         if (wallet && typeof wallet.valens_balance === 'number') {
           setBalance(wallet.valens_balance);
         }
 
-        // Guardar coordenadas GPS en profiles si fueron capturadas
-        if (userCoords && data?.user?.id) {
-          await profileService.updateLocation(data.user.id, {
+        if (userCoords && sessionUser.id) {
+          await profileService.updateLocation(sessionUser.id, {
             lat: userCoords[0],
             lng: userCoords[1]
           }).catch(() => {});
         }
 
-        showToast(`¡Bienvenido, ${name}! Sesión conectada con Google. Billetera: 10.0 VAL`, 'success');
+        const fallbackLabel = data?.source === 'mock' ? 'modo de prueba local' : 'Google';
+        showToast(`¡Bienvenido, ${name}! Sesión conectada con ${fallbackLabel}. Billetera: 10.0 VAL`, 'success');
         onClose();
+      } else {
+        setErrorMessage('No se pudo completar la autenticación con Google. Intenta de nuevo.');
+        showToast('No se pudo completar la autenticación con Google.', 'warning');
       }
     } catch (err) {
       console.error('Error inesperado en Google Auth:', err);
       const msg = err.message || 'Error inesperado durante la autenticación con Google.';
       setErrorMessage(msg);
-      showToast(`Error: ${msg}`, 'error');
+      showToast(`Error: ${msg}`, 'warning');
     } finally {
       setGoogleLoading(false);
     }

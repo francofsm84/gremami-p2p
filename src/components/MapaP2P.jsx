@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useApp, CURRENT_CADET_ID } from '../context/AppContext';
 import MotorcycleIcon from './MotorcycleIcon';
 import L from 'leaflet';
-import { MapContainer, TileLayer, Marker, LayerGroup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, LayerGroup, useMap, useMapEvents } from 'react-leaflet';
 import { 
   MapPin, 
   Footprints, 
@@ -235,6 +235,14 @@ const createAuctionMarkerIcon = (req, isSelected, isDark) => {
   const textColor = isDark ? '#F1F5F9' : '#0F172A';
   const borderColor = '#F59E0B';
   const offersCount = req.offers?.length || 0;
+  const categoryIcon = {
+    caminando: '🚶',
+    bicicleta: '🚲',
+    motocicleta: '🛵',
+    automovil: '🚗',
+    fletes: '🚚',
+    negocios: '🏪'
+  }[normalizeMobility(req.category || req.categoryLabel)] || '📦';
   const scaleStyle = isSelected ? 'transform: scale(1.22); filter: drop-shadow(0 0 10px #F59E0B);' : '';
   const scheduledTime = String(req.scheduledTime || 'Hoy').slice(0, 12);
   const locality = req.locality ? String(req.locality).slice(0, 14) : '';
@@ -248,9 +256,9 @@ const createAuctionMarkerIcon = (req, isSelected, isDark) => {
         <div style="position:relative; display:flex; align-items:center; justify-content:center;">
           <!-- Pulso de radar ámbar animado -->
           <div style="position:absolute; width:36px; height:36px; border-radius:9999px; background:rgba(245,158,11,0.35); animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>
-          <!-- Ícono de Paquete P2P Distintivo -->
+          <!-- Ícono categórico dentro del marcador P2P distintivo -->
           <div style="background:${bgNode}; border:2.5px solid ${borderColor}; border-radius:14px; padding:3px 7px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(245,158,11,0.4); font-size:17px; line-height:1; position:relative; z-index:2;">
-            \u{1F4E6}
+            ${categoryIcon}
           </div>
           ${offersCount > 0 ? `
             <div style="position:absolute; top:-6px; right:-8px; background:#10B981; color:#FFFFFF; font-size:8px; font-weight:900; border-radius:9999px; padding:1px 5px; border:1.5px solid #FFFFFF; z-index:3; box-shadow:0 2px 4px rgba(0,0,0,0.3);">
@@ -342,24 +350,11 @@ const createLandmarkIcon = (emoji, title, subtitle, isDark) => {
   });
 };
 
-// Controlador auxiliar para mantener el mapa centrado en escala barrial/urbana sin zoom-out masivo
-function MapController({ selectedNode, selectedAuction, recenterTrigger, userCoords, expandTrigger }) {
+// Controlador auxiliar para recalcular tamaño del mapa y permitir navegación libre del usuario.
+// No forzamos flyTo/fitBounds ni recenter automático al arrastrar o hacer zoom.
+function MapController({ recenterTrigger, userCoords, expandTrigger }) {
   const map = useMap();
 
-  // Centrar suavemente al seleccionar un nodo individual o subasta
-  useEffect(() => {
-    if (selectedNode) {
-      const [lat, lng] = getNodeCoordinates(selectedNode);
-      map.flyTo([lat, lng], DEFAULT_NEIGHBORHOOD_ZOOM, { duration: 0.8 });
-    } else if (selectedAuction) {
-      const coords = selectedAuction.lat && selectedAuction.lng
-        ? [selectedAuction.lat, selectedAuction.lng]
-        : getNodeCoordinates(selectedAuction);
-      map.flyTo(coords, DEFAULT_NEIGHBORHOOD_ZOOM, { duration: 0.8 });
-    }
-  }, [selectedNode, selectedAuction, map]);
-
-  // Centrar en la ubicación del usuario al pulsar el botón de recentrado (GPS)
   useEffect(() => {
     if (recenterTrigger > 0) {
       const targetCoords = userCoords || ALTA_GRACIA_CENTER;
@@ -367,7 +362,6 @@ function MapController({ selectedNode, selectedAuction, recenterTrigger, userCoo
     }
   }, [recenterTrigger, map, userCoords]);
 
-  // Recalcular tamaño del mapa tras montar
   useEffect(() => {
     const timer = setTimeout(() => {
       map.invalidateSize();
@@ -375,7 +369,6 @@ function MapController({ selectedNode, selectedAuction, recenterTrigger, userCoo
     return () => clearTimeout(timer);
   }, [map]);
 
-  // Recalcular cuando cambia el estado de expansion (fullscreen toggle)
   useEffect(() => {
     const timer = setTimeout(() => {
       map.invalidateSize();
@@ -383,6 +376,23 @@ function MapController({ selectedNode, selectedAuction, recenterTrigger, userCoo
     return () => clearTimeout(timer);
   }, [expandTrigger, map]);
 
+  return null;
+}
+
+// Tracker reactivo de los límites visibles del mapa (viewport bounding box)
+// Se actualiza en cada movimiento o zoom del usuario para filtrado dinámico de nodos
+function BoundsTracker({ onBoundsChange }) {
+  const map = useMap();
+
+  useEffect(() => {
+    onBoundsChange(map.getBounds());
+  }, [map, onBoundsChange]);
+
+  useMapEvents({
+    moveend: () => onBoundsChange(map.getBounds()),
+    zoomend: () => onBoundsChange(map.getBounds()),
+    resize: () => onBoundsChange(map.getBounds()),
+  });
   return null;
 }
 
@@ -533,6 +543,9 @@ export default function MapaP2P(props) {
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [expandTrigger, setExpandTrigger] = useState(0);
 
+  // Estado del bounding box visible del mapa para filtrado dinámico por viewport
+  const [mapBounds, setMapBounds] = useState(null);
+
   const handleToggleMapExpand = () => {
     setIsMapExpanded((prev) => !prev);
     setExpandTrigger((prev) => prev + 1);
@@ -623,24 +636,24 @@ export default function MapaP2P(props) {
   const [proposalFeeArs, setProposalFeeArs] = useState(3200);
   const [proposalFeeValens, setProposalFeeValens] = useState(1.2);
 
-  // Radio de proximidad de escala barrial/cercana (máximo 3 km por defecto, o configurado en perfil)
+  // Radio de proximidad (solo para estadísticas/alertas — ya NO filtra los marcadores del mapa)
   const proximityRadiusKm = Number(userProfile?.coverageRadius) > 0
     ? Math.min(Number(userProfile.coverageRadius), 5)
     : 3.0;
 
-  // ── FILTRADO REACTIVO REAL CON useMemo (GEOFENCING DE PROXIMIDAD <= 3 KM) ──
-  // Nodos (cadetes/prestadores) visibles dentro del radio de proximidad barrial
+  // ── FILTRADO REACTIVO POR VIEWPORT (Bounding Box visible del mapa) ──
+  // Renderiza todos los nodos dentro de la vista actual del mapa.
+  // Al hacer pan/zoom a otra ciudad, los marcadores se actualizan sin re-centrar la cámara.
   const visibleNodes = useMemo(() => {
-    const [uLat, uLng] = userCoords || ALTA_GRACIA_CENTER;
-
     return peers.filter((node) => {
       const isBlocked = isUserBlocked(node.id);
       if (isBlocked && !showBlockedUsers) return false;
 
-      // 1. Geofencing barrial: sólo prestadores dentro del radio de proximidad (<= 3 km)
-      const [nodeLat, nodeLng] = getNodeCoordinates(node);
-      const distKm = haversineKm(uLat, uLng, nodeLat, nodeLng);
-      if (distKm > proximityRadiusKm) return false;
+      // 1. Filtrado por viewport bounding box (si el mapa ya tiene bounds disponibles)
+      if (mapBounds) {
+        const [nodeLat, nodeLng] = getNodeCoordinates(node);
+        if (!mapBounds.contains([nodeLat, nodeLng])) return false;
+      }
 
       // 2. Filtro por categoría principal (enum normalizado universal)
       if (selectedCategory !== 'all') {
@@ -663,7 +676,7 @@ export default function MapaP2P(props) {
 
       return true;
     });
-  }, [peers, userCoords, proximityRadiusKm, selectedCategory, selectedModalityFilter, showBlockedUsers, isUserBlocked]);
+  }, [peers, mapBounds, selectedCategory, selectedModalityFilter, showBlockedUsers, isUserBlocked]);
 
   // Flag de estado vacio para la categoria activa dentro del radio
   const isCategoryEmpty = !isCadete && visibleNodes.length === 0 && selectedCategory !== 'all';
@@ -703,19 +716,19 @@ export default function MapaP2P(props) {
 
   // Filtrado Estricto de Subastas y Pedidos de Clientes (Modo Cadete / Prestador) dentro del radio barrial
   const visibleAuctions = useMemo(() => {
-    const [uLat, uLng] = userCoords || ALTA_GRACIA_CENTER;
     const openAuctionRequests = (liveRequests || []).filter((r) => r.status === 'open');
 
     return openAuctionRequests.filter((req) => {
-      // 1. Geofencing: filtrar pedidos dentro del radio cercano
-      const coords = req.lat && req.lng ? [req.lat, req.lng] : getNodeCoordinates(req);
-      const distKm = haversineKm(uLat, uLng, coords[0], coords[1]);
-      if (distKm > proximityRadiusKm) return false;
+      // 1. Filtrado por viewport visible del mapa para permitir navegar libremente sin anclar la cámara
+      if (mapBounds) {
+        const coords = req.lat && req.lng ? [req.lat, req.lng] : getNodeCoordinates(req);
+        if (!mapBounds.contains(coords)) return false;
+      }
 
       // 2. Coincidencia estricta por categoría
       return matchesAuctionCategory(req, selectedCategory);
     });
-  }, [liveRequests, userCoords, proximityRadiusKm, selectedCategory]);
+  }, [liveRequests, mapBounds, selectedCategory]);
 
   // Subastas del cliente y conteo de ofertas recibidas en tiempo real
   const clientAuctions = liveRequests || [];
@@ -1085,12 +1098,11 @@ export default function MapaP2P(props) {
 
       {/* 4. Mapa Interactivo Vectorial react-leaflet */}
       <div className="flex-1 relative w-full h-full min-h-0 overflow-hidden select-none">
-        {/* Boton fullscreen — z-index 2000 garantiza visibilidad sobre cualquier overlay */}
-        <button
+        {/* Mantener el control fuera de las fichas de detalle */}
+        {!selectedNode && !selectedAuction && <button
           onClick={handleToggleMapExpand}
           title={isMapExpanded ? 'Restaurar vista con controles' : 'Expandir mapa a pantalla completa'}
-          style={{ zIndex: 2000 }}
-          className={`absolute top-3 left-1/2 -translate-x-1/2 pointer-events-auto flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border shadow-lg text-[11px] font-bold transition-all duration-200 active:scale-95 ${
+          className={`absolute top-3 left-1/2 -translate-x-1/2 z-[1000] pointer-events-auto flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border shadow-lg text-[11px] font-bold transition-all duration-200 active:scale-95 ${
             isDark
               ? 'bg-[#0B132B]/90 text-slate-200 border-[#2A3B5C] hover:bg-[#18243C] hover:text-white backdrop-blur-sm'
               : 'bg-white/90 text-slate-700 border-slate-300 hover:bg-slate-100 hover:text-slate-900 backdrop-blur-sm shadow-md'
@@ -1107,7 +1119,7 @@ export default function MapaP2P(props) {
               <span>Pantalla completa</span>
             </>
           )}
-        </button>
+        </button>}
 
         {/* Banner de estado vacio: categoria sin nodos */}
         {isCategoryEmpty && (
@@ -1144,12 +1156,12 @@ export default function MapaP2P(props) {
 
           {/* Controlador reactivo: escala barrial fija, centrado en el usuario y recalculo de tamaño */}
           <MapController 
-            selectedNode={selectedNode} 
-            selectedAuction={selectedAuction}
             recenterTrigger={recenterTrigger}
             userCoords={userCoords}
             expandTrigger={expandTrigger}
           />
+
+          <BoundsTracker onBoundsChange={setMapBounds} />
 
           {/* Controles flotantes de Zoom (+/-) y Recentrar suavemente en Mi Ubicación (GPS) */}
           <CustomMapControls 

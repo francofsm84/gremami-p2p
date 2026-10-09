@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import Header from './components/Header';
-import DexScreen from './components/DexScreen';
-import HomeScreen from './components/HomeScreen';
-import MapaP2P from './components/MapaP2P';
-import ChatScreen from './components/ChatScreen';
-import WalletScreen from './components/WalletScreen';
-import ProfileScreen from './components/ProfileScreen';
 import AuthModal from './components/AuthModal';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
+
+const DexScreen = lazy(() => import('./components/DexScreen'));
+const HomeScreen = lazy(() => import('./components/HomeScreen'));
+const MapaP2P = lazy(() => import('./components/MapaP2P'));
+const ChatScreen = lazy(() => import('./components/ChatScreen'));
+const WalletScreen = lazy(() => import('./components/WalletScreen'));
+const ProfileScreen = lazy(() => import('./components/ProfileScreen'));
 
 function MainLayout() {
   const {
@@ -62,20 +63,26 @@ function MainLayout() {
 
         {/* Dynamic Screen View - Navegación exclusiva por Menú Hamburguesa */}
         <main className="flex-1 flex flex-col overflow-x-hidden min-h-0 pb-3">
-          {activeTab === 'home' && <HomeScreen />}
-          {activeTab === 'map' && (
-            <MapaP2P
-              selectedCategory={selectedCategoryFilter}
-              setSelectedCategory={setSelectedCategoryFilter}
-              setActiveTab={setActiveTab}
-              setSelectedUserForChat={startChatWithPeer}
-              role={role}
-            />
-          )}
-          {activeTab === 'chat' && <ChatScreen />}
-          {activeTab === 'wallet' && <WalletScreen />}
-          {activeTab === 'dex' && <DexScreen />}
-          {activeTab === 'profile' && <ProfileScreen />}
+          <Suspense fallback={
+            <div className="flex flex-1 items-center justify-center p-6 text-sm text-slate-400" role="status">
+              Cargando pantalla...
+            </div>
+          }>
+            {activeTab === 'home' && <HomeScreen />}
+            {activeTab === 'map' && (
+              <MapaP2P
+                selectedCategory={selectedCategoryFilter}
+                setSelectedCategory={setSelectedCategoryFilter}
+                setActiveTab={setActiveTab}
+                setSelectedUserForChat={startChatWithPeer}
+                role={role}
+              />
+            )}
+            {activeTab === 'chat' && <ChatScreen />}
+            {activeTab === 'wallet' && <WalletScreen />}
+            {activeTab === 'dex' && <DexScreen />}
+            {activeTab === 'profile' && <ProfileScreen />}
+          </Suspense>
         </main>
 
         {/* Modal de Autenticación Supabase / Google OAuth */}

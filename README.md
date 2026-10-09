@@ -108,3 +108,4 @@ La aplicación usa Supabase Auth para el registro e inicio de sesión con Google
 2. En la configuración OAuth de Google, registra como URI de redirección autorizada `https://<project-ref>.supabase.co/auth/v1/callback`.
 3. En **Authentication → URL Configuration**, agrega el origen de la aplicación a las URL de redirección permitidas (por ejemplo, `http://localhost:3000` para desarrollo y el dominio publicado).
 4. Configura `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en `.env` y reinicia Vite después de cambiarlos.
+5. En **SQL Editor** de Supabase, ejecuta [`supabase/schema.sql`](./supabase/schema.sql) para crear o actualizar las tablas y políticas. Vuelve a ejecutarlo después de cambios del esquema; incluye una migración compatible para agregar `profiles.vehicle_type` a proyectos existentes.
