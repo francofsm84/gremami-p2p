@@ -2,6 +2,8 @@ import React, { lazy, Suspense } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import Header from './components/Header';
 import AuthModal from './components/AuthModal';
+import UserSearchModal from './components/UserSearchModal';
+import PublicProfileModal from './components/PublicProfileModal';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
 const DexScreen = lazy(() => import('./components/DexScreen'));
@@ -22,7 +24,11 @@ function MainLayout() {
     toast,
     theme,
     isAuthModalOpen,
-    closeAuthModal
+    closeAuthModal,
+    isSearchModalOpen,
+    closeSearchModal,
+    selectedPublicProfile,
+    closePublicProfile
   } = useApp();
 
   const isDark = theme === 'dark';

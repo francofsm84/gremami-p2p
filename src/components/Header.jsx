@@ -19,7 +19,8 @@ import {
   Settings,
   LogIn,
   LogOut,
-  CheckCircle2
+  CheckCircle2,
+  Search
 } from 'lucide-react';
 
 export default function Header() {
@@ -41,7 +42,8 @@ export default function Header() {
     currentUser,
     openAuthModal,
     logout,
-    userProfile
+    userProfile,
+    openSearchModal
   } = useApp();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -77,7 +79,7 @@ export default function Header() {
       label: 'Billetera ValensCoin',
       icon: Wallet,
       desc: 'Saldo y Escuela Cripto P2P',
-      badge: `${balance.toFixed(1)} VAL`
+      badge: `${Math.floor(balance)} VAL`
     },
     {
       id: 'dex',
@@ -191,6 +193,20 @@ export default function Header() {
               <span className="text-[10px]">Ingresar</span>
             </button>
           )}
+
+          {/* Botón Buscador de Usuarios P2P */}
+          <button
+            onClick={openSearchModal}
+            aria-label="Buscar usuarios P2P"
+            title="Buscar miembros por nick, nombre o correo"
+            className={`p-2 rounded-xl border transition-all flex items-center justify-center active:scale-95 ${
+              isDark
+                ? 'bg-[#1A253D] text-slate-200 border-[#2D3E61] hover:border-[#F7931A] hover:text-[#F0B90B] hover:bg-[#22304E]'
+                : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 hover:text-slate-900 shadow-xs'
+            }`}
+          >
+            <Search className="w-4 h-4 stroke-[2.2]" />
+          </button>
 
           {/* 1. Selector de Tema Día / Noche (Sol / Luna) Requerido */}
           <button
@@ -402,6 +418,31 @@ export default function Header() {
                 )}
               </div>
             </div>
+
+            {/* Botón de Acceso Directo al Buscador de Usuarios P2P */}
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+                openSearchModal();
+              }}
+              type="button"
+              className={`w-full mb-3 p-2.5 rounded-xl border flex items-center justify-between transition-all active:scale-[0.99] ${
+                isDark
+                  ? 'border-[#F7931A]/40 bg-gradient-to-r from-[#F7931A]/10 to-[#F0B90B]/10 hover:from-[#F7931A]/20 hover:to-[#F0B90B]/20 text-slate-100'
+                  : 'border-[#F7931A]/40 bg-amber-50 hover:bg-amber-100 text-slate-800'
+              }`}
+            >
+              <div className="flex items-center space-x-2.5">
+                <div className="w-7 h-7 rounded-lg bg-[#F7931A] text-black flex items-center justify-center font-bold shadow-xs">
+                  <Search className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-bold text-[#F0B90B] dark:text-[#F0B90B]">Buscar Miembros P2P</p>
+                  <p className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Por nick, nombre o correo en Alta Gracia</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#F7931A]" />
+            </button>
 
             <p className={`text-[10px] font-bold uppercase tracking-wider px-1 mb-2 ${
               isDark ? 'text-slate-400' : 'text-slate-600'

@@ -1004,3 +1004,242 @@ export const INITIAL_DEX_ORDERS = [
     timestamp: 'Hace 4 horas'
   }
 ];
+
+// ====================================================================
+// PERFILES PÚBLICOS DE LA COMUNIDAD GREMAMI P2P (Buscador y Perfiles Públicos)
+// ====================================================================
+export const MOCK_COMMUNITY_USERS = [
+  {
+    id: 'user-satoshidev',
+    name: 'Satoshi Nakamoto',
+    username: 'SatoshiDev',
+    email: 'satoshi@gremami.test',
+    role: 'cadete',
+    roleLabel: 'Cadete / Creador P2P',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+    rating: 5.0,
+    reviewsCount: 48,
+    completedAgreements: 142,
+    address: 'valens1q7x8m9z4k0t3w2y5d8c1f6g9h2j4l7v9m3a',
+    isOnline: true,
+    coverageZone: 'Alta Gracia Centro & Valle de Paravachasca',
+    vehicle: 'Moto Eléctrica Soberana ⚡',
+    badges: ['Verificado L1', 'Pionero P2P', '100% Reputación'],
+    bio: 'Desarrollador y cadete independiente. Promoviendo la soberanía económica y la logística sin intermediarios en Alta Gracia.',
+    reviews: [
+      {
+        id: 'rev-s1',
+        author: 'Sol ☀',
+        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
+        stars: 5,
+        date: 'Hace 1 día',
+        comment: 'Excelente compañero de comunidad. Puntual, respetuoso y con las cuentas claras en mano.'
+      },
+      {
+        id: 'rev-s2',
+        author: 'Lucas R.',
+        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+        stars: 5,
+        date: 'Hace 3 días',
+        comment: 'Entregó un paquete delicado en tiempo récord por Av. Belgrano. Muy agradecido con el servicio.'
+      },
+      {
+        id: 'rev-s3',
+        author: 'Panadería Tajamar',
+        avatar: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=100&auto=format&fit=crop&q=80',
+        stars: 5,
+        date: 'La semana pasada',
+        comment: 'Cadete de confianza permanente para el reparto de facturas y panadería a comercios vecinos.'
+      }
+    ]
+  },
+  {
+    id: 'user-sol-p2p',
+    name: 'Sol Gómez',
+    username: 'sol_ag',
+    email: 'sol.cadete@gremami.test',
+    role: 'cadete',
+    roleLabel: 'Bici-Cadete Urbana',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+    rating: 4.96,
+    reviewsCount: 39,
+    completedAgreements: 98,
+    address: 'valens1qsol99p2paltagracia',
+    isOnline: true,
+    coverageZone: 'Barrio Tajamar, Pellegrini & Parque García',
+    vehicle: 'Bicicleta Rodado 29 Urbana 🚲',
+    badges: ['Bici-Cadete', 'Eco-Friendly', 'Puntualidad 100%'],
+    bio: 'Cadetería rápida y ecológica en bicicleta por Alta Gracia. Envíos de documentos, viandas y medicamentos.',
+    reviews: [
+      {
+        id: 'rev-sol-1',
+        author: 'Mar 🌊',
+        avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
+        stars: 5,
+        date: 'Ayer',
+        comment: 'Súper ágil en el centro. Llegó antes de lo previsto y con la mejor onda.'
+      },
+      {
+        id: 'rev-sol-2',
+        author: 'Camila V.',
+        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80',
+        stars: 5,
+        date: 'Hace 4 días',
+        comment: 'Me trajo las compras de la farmacia sin demoras. Recomendada totalmente.'
+      }
+    ]
+  },
+  {
+    id: 'user-leo-flete',
+    name: 'Leo Martínez',
+    username: 'leo_fletes',
+    email: 'leo.fletes@gremami.test',
+    role: 'cadete',
+    roleLabel: 'Fletes & Cargas Pesadas',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+    rating: 4.92,
+    reviewsCount: 52,
+    completedAgreements: 115,
+    address: 'valens1qleo44fletesparavachasca',
+    isOnline: true,
+    coverageZone: 'Valle de Paravachasca, Ruta 5 & Anisacate',
+    vehicle: 'Camioneta Ford F-100 Carrozada 🚚',
+    badges: ['Cargas Grandes', 'Flete Soberano', 'Cobertura Valle'],
+    bio: 'Mudanzas medianas, traslado de materiales y bultos grandes en todo el valle. Precios directos sin comisión de app.',
+    reviews: [
+      {
+        id: 'rev-leo-1',
+        author: 'Panadería Tajamar',
+        avatar: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=100&auto=format&fit=crop&q=80',
+        stars: 5,
+        date: 'Hace 3 días',
+        comment: 'Trasladó 15 bolsas de harina desde el molino a la panadería con gran cuidado.'
+      },
+      {
+        id: 'rev-leo-2',
+        author: 'Lucas R.',
+        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+        stars: 5,
+        date: 'Hace 2 semanas',
+        comment: 'Hicimos mudanza chica de electrodomésticos y todo llegó impecable.'
+      }
+    ]
+  },
+  {
+    id: 'user-mar-moto',
+    name: 'Mar Fernández',
+    username: 'mar_delivery',
+    email: 'mar.p2p@gremami.test',
+    role: 'cadete',
+    roleLabel: 'Moto-Cadete Express',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80',
+    rating: 4.98,
+    reviewsCount: 78,
+    completedAgreements: 210,
+    address: 'valens1qmar88valenscoinl1',
+    isOnline: true,
+    coverageZone: 'Alta Gracia, Villa Bolsa & Villa Los Aromos',
+    vehicle: 'Moto Honda GLH 150cc 🏍️',
+    badges: ['Repartidor Top', 'Rapidez Garantizada', 'Valens Aceptado'],
+    bio: 'Cadetería en moto con baúl térmico de 80 litros. Repartos gastronómicos, trámites y paquetería urgente.',
+    reviews: [
+      {
+        id: 'rev-mar-1',
+        author: 'Satoshi Nakamoto',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+        stars: 5,
+        date: 'Hace 2 días',
+        comment: 'Gran compromiso con la red descentralizada. Siempre disponible y muy atenta.'
+      },
+      {
+        id: 'rev-mar-2',
+        author: 'Sol ☀',
+        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
+        stars: 5,
+        date: 'Hace 5 días',
+        comment: 'Excelente colega para coordinar pedidos cuando hay alta demanda en la zona.'
+      }
+    ]
+  },
+  {
+    id: 'user-lucas-cliente',
+    name: 'Lucas Rodríguez',
+    username: 'lucas_cliente',
+    email: 'lucas.r@gremami.test',
+    role: 'cliente',
+    roleLabel: 'Cliente P2P Habitual',
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+    rating: 4.95,
+    reviewsCount: 18,
+    completedAgreements: 34,
+    address: 'valens1qlucasclienteag01',
+    isOnline: false,
+    coverageZone: 'Alta Gracia Centro',
+    badges: ['Cliente Frecuente', 'Buen Pagador', 'PIN Rápido'],
+    bio: 'Vecino del centro de Alta Gracia. Uso Gremami P2P para compras locales y trámites semanales.',
+    reviews: [
+      {
+        id: 'rev-luc-1',
+        author: 'Leo Martínez',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
+        stars: 5,
+        date: 'Hace 1 semana',
+        comment: 'Cliente de diez. Indicó la dirección perfecta, bajó enseguida a recibir y pagó lo acordado.'
+      }
+    ]
+  },
+  {
+    id: 'user-camila-cliente',
+    name: 'Camila Varela',
+    username: 'cami_varela',
+    email: 'camila.v@gremami.test',
+    role: 'cliente',
+    roleLabel: 'Cliente P2P',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&auto=format&fit=crop&q=80',
+    rating: 4.90,
+    reviewsCount: 22,
+    completedAgreements: 52,
+    address: 'valens1qcamilaagparavachasca',
+    isOnline: true,
+    coverageZone: 'Villa Golf & Casco Histórico',
+    badges: ['Cliente Verificada', 'Propinas en VAL'],
+    bio: 'Compradora habitual en comercios de la ciudad. Prefiero pactar directo con los cadetes.',
+    reviews: [
+      {
+        id: 'rev-cam-1',
+        author: 'Sol ☀',
+        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
+        stars: 5,
+        date: 'Hace 4 días',
+        comment: 'Muy cordial y respetuosa con los tiempos de entrega. Da gusto trabajar así.'
+      }
+    ]
+  },
+  {
+    id: 'user-comercio-tajamar',
+    name: 'Panadería Tajamar',
+    username: 'panaderia_tajamar',
+    email: 'tajamar.pan@gremami.test',
+    role: 'comercio',
+    roleLabel: 'Comercio Local Adherido',
+    avatar: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200&auto=format&fit=crop&q=80',
+    rating: 4.88,
+    reviewsCount: 94,
+    completedAgreements: 320,
+    address: 'valens1qtajamarcomerciosag',
+    isOnline: true,
+    coverageZone: 'Av. Sarmiento 240, Alta Gracia',
+    badges: ['Comercio Histórico', 'Punto de Retiro', 'Acepta ValensCoin'],
+    bio: 'Panadería artesanal y confitería desde 1982. Envíos calientes a domicilio coordinados directamente con cadetes locales.',
+    reviews: [
+      {
+        id: 'rev-taj-1',
+        author: 'Mar Fernández',
+        avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
+        stars: 5,
+        date: 'Ayer',
+        comment: 'Siempre tienen los paquetes embalados a tiempo. El trato en el mostrador es impecable.'
+      }
+    ]
+  }
+];

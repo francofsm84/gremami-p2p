@@ -10,7 +10,8 @@ import {
   INITIAL_DEX_ORDERS,
   formatDistanceKm,
   getPeerSocials,
-  ARGENTINE_FIAT_PROVIDERS
+  ARGENTINE_FIAT_PROVIDERS,
+  MOCK_COMMUNITY_USERS
 } from '../data/mockData';
 import { playP2PAlertChime, playCelebrationSound } from '../utils/audioAlert';
 import { 
@@ -216,6 +217,8 @@ export function AppProvider({ children }) {
     return null;
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [selectedPublicProfile, setSelectedPublicProfile] = useState(null);
 
   // 4. Interruptor de Estado en Tiempo Real (Online / Offline - Disponible para Trabajar)
   const [isOnline, setIsOnline] = useState(() => {
@@ -896,6 +899,78 @@ export function AppProvider({ children }) {
     }
 
     return { success: true, txHash, amount: intAmount };
+  };
+
+  // Función de Búsqueda de Usuarios Públicos (por correo, nick o nombre en tiempo real)
+  const searchUsers = async (query) => {
+    if (!query || !query.trim()) return MOCK_COMMUNITY_USERS;
+    const cleanQuery = query.trim().toLowerCase();
+
+    // 1. Búsqueda remota en Supabase
+    let remoteUsers = [];
+    try {
+      remoteUsers = await profileService.searchUsers(cleanQuery);
+    } catch (err) {
+      console.warn('Fallo búsqueda remota:', err);
+    }
+
+    // 2. Búsqueda local en MOCK_COMMUNITY_USERS
+    const mockMatches = (MOCK_COMMUNITY_USERS || []).filter((u) => {
+      const matchName = u.name?.toLowerCase().includes(cleanQuery);
+      const matchUser = u.username?.toLowerCase().includes(cleanQuery);
+      const matchEmail = u.email?.toLowerCase().includes(cleanQuery);
+      const matchAddr = u.address?.toLowerCase().includes(cleanQuery);
+      return matchName || matchUser || matchEmail || matchAddr;
+    });
+
+    // 3. Búsqueda en peers del mapa (60 nodos de Alta Gracia)
+    const peerMatches = (peers || []).filter((p) => {
+      const matchName = p.name?.toLowerCase().includes(cleanQuery);
+      const matchRole = p.role?.toLowerCase().includes(cleanQuery);
+      const matchZone = p.locality?.toLowerCase().includes(cleanQuery) || p.zone?.toLowerCase().includes(cleanQuery);
+      const matchAddr = p.address?.toLowerCase().includes(cleanQuery);
+      return matchName || matchRole || matchZone || matchAddr;
+    }).map((p) => ({
+      id: p.id,
+      name: p.name,
+      username: p.name?.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+      email: `${p.name?.toLowerCase().replace(/[^a-z0-9]/g, '')}@gremami.test`,
+      role: p.type || 'cadete',
+      roleLabel: p.role || 'Cadete P2P',
+      avatar: p.avatar,
+      rating: p.rating || 4.9,
+      reviewsCount: p.reviewsCount || 25,
+      completedAgreements: p.completedDeliveries || 40,
+      address: p.address || `valens1q${p.id}p2p`,
+      isOnline: Boolean(p.isOnline),
+      coverageZone: p.locationLabel || p.locality || 'Alta Gracia',
+      vehicle: p.vehicle || 'Vehículo P2P',
+      badges: ['Prestador Activo', p.locality || 'Alta Gracia'],
+      bio: p.description || 'Miembro de la red P2P de Alta Gracia.',
+      reviews: [
+        {
+          id: `rev-${p.id}`,
+          author: 'Cliente de la Comunidad',
+          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+          stars: 5,
+          date: 'Esta semana',
+          comment: 'Servicio verificado en el mapa radar de Alta Gracia.'
+        }
+      ]
+    }));
+
+    // Consolidar resultados sin duplicados
+    const combined = [...remoteUsers, ...mockMatches, ...peerMatches];
+    const seen = new Set();
+    const unique = [];
+    for (const u of combined) {
+      const key = u.id || u.username || u.name;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(u);
+      }
+    }
+    return unique;
   };
 
   // Toggle Theme: Modo Noche (Cripto Dark) vs Modo Día (High Contrast)
@@ -1862,6 +1937,15 @@ export function AppProvider({ children }) {
         setIsAuthModalOpen,
         openAuthModal: () => setIsAuthModalOpen(true),
         closeAuthModal: () => setIsAuthModalOpen(false),
+        isSearchModalOpen,
+        setIsSearchModalOpen,
+        openSearchModal: () => setIsSearchModalOpen(true),
+        closeSearchModal: () => setIsSearchModalOpen(false),
+        selectedPublicProfile,
+        setSelectedPublicProfile,
+        openPublicProfile: (profile) => setSelectedPublicProfile(profile),
+        closePublicProfile: () => setSelectedPublicProfile(null),
+        searchUsers,
         logout: async () => {
           await authService.signOut();
           setCurrentUser(null);

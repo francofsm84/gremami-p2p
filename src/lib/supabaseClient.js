@@ -505,11 +505,41 @@ export const profileService = {
       )
       .subscribe();
 
-    return {
-      unsubscribe: () => {
-        supabase.removeChannel(channel);
+  },
+
+  // Búsqueda de usuarios públicos por nombre o alias/nick
+  searchUsers: async (query) => {
+    if (!query || !query.trim()) return [];
+    const cleanQuery = query.trim().toLowerCase();
+
+    if (!isSupabaseConfigured) {
+      try {
+        const cache = JSON.parse(localStorage.getItem('gremami_supabase_profiles') || '{}');
+        return Object.values(cache).filter(p => 
+          (p.full_name && p.full_name.toLowerCase().includes(cleanQuery)) ||
+          (p.payment_alias && p.payment_alias.toLowerCase().includes(cleanQuery))
+        );
+      } catch (e) {
+        return [];
       }
-    };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, role, vehicle_type, service_modality, is_online, payment_alias, coverage_zone')
+        .or(`full_name.ilike.%${cleanQuery}%,payment_alias.ilike.%${cleanQuery}%`)
+        .limit(20);
+
+      if (error) {
+        console.warn('Error en búsqueda de usuarios:', error.message);
+        return [];
+      }
+      return data || [];
+    } catch (err) {
+      console.warn('Excepción en searchUsers:', err);
+      return [];
+    }
   }
 };
 
