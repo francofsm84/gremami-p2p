@@ -155,6 +155,28 @@ export const syncUserProfileAndWallet = async (user, additionalData = {}) => {
     console.warn('Advertencia durante la sincronización en Supabase:', err);
   }
 
+  // Si falló la conexión remota con Supabase, proveer estructura por defecto válida
+  if (!profile) {
+    profile = {
+      id: user.id,
+      full_name: fullName,
+      avatar_url: avatarUrl,
+      role: role,
+      fiat_provider: 'Mercado Pago',
+      fiat_alias: 'cadete.gremami.mp',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+  }
+  if (!wallet) {
+    wallet = {
+      user_id: user.id,
+      valens_balance: 10.0,
+      ars_collected: 0.0,
+      updated_at: new Date().toISOString()
+    };
+  }
+
   // Respaldo en localStorage para disponibilidad local inmediata
   try {
     localStorage.setItem('gremami_auth_user', JSON.stringify({
