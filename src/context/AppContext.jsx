@@ -41,6 +41,70 @@ const haversineKm = (lat1, lng1, lat2, lng2) => {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
+// Decodificador seguro de JWT para lectura inmediata de tokens de usuario sin latencia
+const decodeJwtPayload = (token) => {
+  if (!token || typeof token !== 'string') return null;
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+    const jsonPayload = decodeURIComponent(
+      atob(padded)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    try {
+      const parts = token.split('.');
+      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      return JSON.parse(atob(base64));
+    } catch (err) {
+      return null;
+    }
+  }
+};
+
+// Extractor directo de tokens desde la URL (hash #access_token o query ?access_token)
+const extractTokensFromUrl = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    if (window.location.hash) {
+      let rawHash = window.location.hash;
+      if (rawHash.startsWith('#/')) rawHash = rawHash.substring(2);
+      else if (rawHash.startsWith('#')) rawHash = rawHash.substring(1);
+
+      if (rawHash.includes('access_token')) {
+        const params = new URLSearchParams(rawHash);
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+        if (accessToken) {
+          return { accessToken, refreshToken: refreshToken || '' };
+        }
+      }
+    }
+
+    if (window.location.search) {
+      const params = new URLSearchParams(window.location.search);
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const code = params.get('code');
+      if (accessToken) {
+        return { accessToken, refreshToken: refreshToken || '' };
+      }
+      if (code) {
+        return { code };
+      }
+    }
+  } catch (e) {
+    console.warn('[Auth] Error analizando tokens de la URL:', e);
+  }
+  return null;
+};
+
 export function AppProvider({ children }) {
   // Theme: 'dark' (Cripto Dark) or 'light' (High Contrast Urbano)
   const [theme, setTheme] = useState(() => {
@@ -89,6 +153,12 @@ export function AppProvider({ children }) {
   // User credentials & identity
   const [userPublicKey] = useState('valens1q7x8m9z4k0t3w2y5d8c1f6g9h2j4l7v9m3a');
   const [userName, setUserName] = useState(() => {
+    const urlTokens = extractTokensFromUrl();
+    if (urlTokens?.accessToken) {
+      const payload = decodeJwtPayload(urlTokens.accessToken);
+      const name = payload?.user_metadata?.full_name || payload?.user_metadata?.name || payload?.email?.split('@')[0];
+      if (name) return name;
+    }
     try {
       const saved = localStorage.getItem('gremami_auth_user');
       if (saved) {
@@ -101,6 +171,22 @@ export function AppProvider({ children }) {
     return 'SatoshiDev';
   });
   const [currentUser, setCurrentUser] = useState(() => {
+    const urlTokens = extractTokensFromUrl();
+    if (urlTokens?.accessToken) {
+      const payload = decodeJwtPayload(urlTokens.accessToken);
+      if (payload?.sub) {
+        const immediateUser = {
+          id: payload.sub,
+          email: payload.email,
+          user_metadata: payload.user_metadata || {},
+          app_metadata: payload.app_metadata || {}
+        };
+        try {
+          localStorage.setItem('gremami_auth_user', JSON.stringify(immediateUser));
+        } catch (e) {}
+        return immediateUser;
+      }
+    }
     try {
       const saved = localStorage.getItem('gremami_auth_user');
       if (saved) {
@@ -119,10 +205,17 @@ export function AppProvider({ children }) {
 
   // Perfil Ampliado del Usuario / Prestador
   const [userProfile, setUserProfile] = useState(() => {
+    const urlTokens = extractTokensFromUrl();
+    const tokenPayload = urlTokens?.accessToken ? decodeJwtPayload(urlTokens.accessToken) : null;
+    const tokenName = tokenPayload?.user_metadata?.full_name || tokenPayload?.user_metadata?.name;
+    const tokenAvatar = tokenPayload?.user_metadata?.avatar_url || tokenPayload?.user_metadata?.picture;
+
     try {
       const saved = localStorage.getItem('gremami_user_profile');
       if (saved) {
         const parsed = JSON.parse(saved);
+        if (tokenName) parsed.name = tokenName;
+        if (tokenAvatar) parsed.avatar = tokenAvatar;
         if (!parsed.aliasCbu) parsed.aliasCbu = 'cadete.gremami.mp';
         if (!parsed.fiatProvider) parsed.fiatProvider = 'Mercado Pago';
         if (!parsed.fiatAlias) parsed.fiatAlias = parsed.aliasCbu || 'cadete.gremami.mp';
@@ -135,7 +228,7 @@ export function AppProvider({ children }) {
       }
     } catch (e) {}
     return {
-      name: 'SatoshiDev',
+      name: tokenName || 'SatoshiDev',
       role: 'cadete',
       aliasCbu: 'cadete.gremami.mp',
       fiatProvider: 'Mercado Pago',
@@ -143,7 +236,7 @@ export function AppProvider({ children }) {
       fiatCbuCvu: '0000003100049281729384',
       fiatHolderName: 'Satoshi Dev Nakamoto',
       fiatCuit: '20-38492019-4',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      avatar: tokenAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       idDocumentUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400&auto=format&fit=crop&q=80',
       isIdVerified: true,
       bio: 'Servicio de logística y fletes soberano en Alta Gracia. Mudanzas, trámites rápidos y cargas pesadas sin comisiones abusivas.',
@@ -300,37 +393,84 @@ export function AppProvider({ children }) {
       }
     };
 
-    // 1. Forzar procesamiento de tokens OAuth y lectura de sesión (hash en URL o storage)
-    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
-      if (session?.user) {
-        // Asegurar que el estado del usuario esté completamente establecido antes de limpiar la URL
-        await handleUserSession(session.user);
-        if (typeof window !== 'undefined' && window.location.hash && window.location.hash.includes('access_token')) {
+    const processAuth = async () => {
+      // 1. Extraer tokens explícitos desde la URL si venimos del redirect de Google
+      const urlTokens = extractTokensFromUrl();
+      if (urlTokens?.accessToken) {
+        console.info('[Auth] Token detectado en URL, estableciendo sesión...');
+        const payload = decodeJwtPayload(urlTokens.accessToken);
+        if (payload?.sub) {
+          const userFromToken = {
+            id: payload.sub,
+            email: payload.email,
+            user_metadata: payload.user_metadata || {},
+            app_metadata: payload.app_metadata || {}
+          };
+          await handleUserSession(userFromToken);
+        }
+
+        try {
+          const { data: setSessionData, error: setSessionErr } = await supabase.auth.setSession({
+            access_token: urlTokens.accessToken,
+            refresh_token: urlTokens.refreshToken || ''
+          });
+          if (setSessionData?.session?.user) {
+            await handleUserSession(setSessionData.session.user);
+          }
+        } catch (err) {
+          console.warn('[Auth] Error en supabase.auth.setSession:', err);
+        }
+
+        // Limpiar URL de forma segura sin recargar
+        if (typeof window !== 'undefined' && window.location.hash) {
           window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
-      } else {
-        // Fallback a almacenamiento local si no hay sesión activa en Supabase
-        authService.getUser().then((user) => {
-          if (user) handleUserSession(user);
-        }).catch(() => {});
+        return;
       }
-    }).catch(() => {
-      authService.getUser().then((user) => {
-        if (user) handleUserSession(user);
-      }).catch(() => {});
-    });
 
-    // 2. Escuchar eventos de cambio de autenticación en tiempo real (OAuth Redirects, Login, Logout)
+      if (urlTokens?.code) {
+        try {
+          const { data: exchangeData } = await supabase.auth.exchangeCodeForSession(urlTokens.code);
+          if (exchangeData?.session?.user) {
+            await handleUserSession(exchangeData.session.user);
+          }
+          if (typeof window !== 'undefined' && window.location.search) {
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+          return;
+        } catch (e) {
+          console.warn('[Auth] Error intercambiando código OAuth:', e);
+        }
+      }
+
+      // 2. Si no hay tokens en la URL, verificar sesión existente en Supabase
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await handleUserSession(session.user);
+          return;
+        }
+      } catch (e) {}
+
+      // 3. Fallback a almacenamiento local si no hay sesión activa en Supabase
+      try {
+        const localUser = await authService.getUser();
+        if (localUser) {
+          await handleUserSession(localUser);
+        }
+      } catch (e) {}
+    };
+
+    processAuth();
+
+    // 4. Escuchar eventos de cambio de autenticación en tiempo real (OAuth Redirects, Login, Logout)
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.info('[Auth Event]', event);
       if (session?.user) {
-        // Actualizar estado de usuario antes de limpiar parámetros de la URL
         await handleUserSession(session.user);
         if (event === 'SIGNED_IN') {
           const userNameLabel = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Google';
           showToast(`¡Bienvenido, ${userNameLabel}! Sesión conectada.`, 'success');
-        }
-        if (typeof window !== 'undefined' && window.location.hash && window.location.hash.includes('access_token')) {
-          window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
