@@ -57,6 +57,13 @@ export const syncUserProfileAndWallet = async (user, additionalData = {}) => {
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
 
   const role = additionalData.role || user.user_metadata?.role || 'cadete';
+  const username = (
+    user.user_metadata?.name ||
+    user.email?.split('@')[0] ||
+    'usuario'
+  )
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '_');
 
   let profile = null;
   let wallet = null;
@@ -71,12 +78,30 @@ export const syncUserProfileAndWallet = async (user, additionalData = {}) => {
 
     if (existingProfile) {
       profile = existingProfile;
+
+      // Backfill de email/username si faltan (para que la búsqueda funcione)
+      if (!existingProfile.email || !existingProfile.username) {
+        const patch = { updated_at: new Date().toISOString() };
+        if (!existingProfile.email && user.email) patch.email = user.email;
+        if (!existingProfile.username) patch.username = username;
+
+        const { data: updatedProfile } = await supabase
+          .from('profiles')
+          .update(patch)
+          .eq('id', user.id)
+          .select()
+          .maybeSingle();
+
+        if (updatedProfile) profile = updatedProfile;
+      }
     } else {
       const newProfile = {
         id: user.id,
         full_name: fullName,
         avatar_url: avatarUrl,
         role: role,
+        email: user.email || null,
+        username: username,
         fiat_provider: 'Mercado Pago',
         fiat_alias: 'cadete.gremami.mp',
         created_at: new Date().toISOString(),
@@ -137,6 +162,8 @@ export const syncUserProfileAndWallet = async (user, additionalData = {}) => {
       full_name: fullName,
       avatar_url: avatarUrl,
       role: role,
+      email: user.email || null,
+      username: username,
       fiat_provider: 'Mercado Pago',
       fiat_alias: 'cadete.gremami.mp',
       created_at: new Date().toISOString(),
@@ -348,7 +375,11 @@ export const profileService = {
       id: user.id,
       full_name: name,
       avatar_url: avatar,
-      role
+      role,
+      email: user.email || null,
+      username: (user.user_metadata?.name || user.email?.split('@')[0] || 'usuario')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '_')
     };
 
     return await profileService.upsertProfile(profileData);
