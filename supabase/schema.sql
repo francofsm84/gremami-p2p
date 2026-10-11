@@ -29,6 +29,16 @@ DROP TABLE IF EXISTS public.wallets CASCADE;
 DROP TABLE IF EXISTS public.token_genesis CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
 
+-- Funciones previas (evita "cannot change return type of existing function")
+DROP FUNCTION IF EXISTS public.search_community_users(text) CASCADE;
+DROP FUNCTION IF EXISTS public.claim_faucet_tokens(uuid) CASCADE;
+DROP FUNCTION IF EXISTS public.transfer_valens_tokens(uuid, text, integer) CASCADE;
+DROP FUNCTION IF EXISTS public.release_reward_by_pin(uuid, text, uuid) CASCADE;
+DROP FUNCTION IF EXISTS public.is_blocked_between(uuid, uuid) CASCADE;
+DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+DROP FUNCTION IF EXISTS public.sync_wallet_columns() CASCADE;
+DROP FUNCTION IF EXISTS public.sync_order_columns() CASCADE;
+
 -- ====================================================================
 -- 1. TABLA: PROFILES (Usuarios, Cadetes, Clientes y Comercios)
 -- ====================================================================
