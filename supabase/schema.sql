@@ -9,6 +9,27 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ====================================================================
+-- 0. LIMPIEZA PREVIA (idempotente)
+-- Elimina versiones previas/incompletas para recrear el esquema desde cero.
+-- Las tablas están vacías, por lo que no se pierde información.
+-- ====================================================================
+DROP VIEW IF EXISTS public.transactions CASCADE;
+DROP VIEW IF EXISTS public.profiles_public CASCADE;
+DROP VIEW IF EXISTS public.mandados CASCADE;
+DROP TABLE IF EXISTS public.valens_transactions CASCADE;
+DROP TABLE IF EXISTS public.dex_orders CASCADE;
+DROP TABLE IF EXISTS public.user_reports CASCADE;
+DROP TABLE IF EXISTS public.user_blocks CASCADE;
+DROP TABLE IF EXISTS public.reviews CASCADE;
+DROP TABLE IF EXISTS public.messages CASCADE;
+DROP TABLE IF EXISTS public.bids CASCADE;
+DROP TABLE IF EXISTS public.offers CASCADE;
+DROP TABLE IF EXISTS public.orders CASCADE;
+DROP TABLE IF EXISTS public.wallets CASCADE;
+DROP TABLE IF EXISTS public.token_genesis CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
+
+-- ====================================================================
 -- 1. TABLA: PROFILES (Usuarios, Cadetes, Clientes y Comercios)
 -- ====================================================================
 CREATE TABLE IF NOT EXISTS public.profiles (
