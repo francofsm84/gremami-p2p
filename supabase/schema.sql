@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   base_price_ars NUMERIC(12, 2) DEFAULT 2500.0, -- compatibilidad
   reward_val NUMERIC(8, 2) NOT NULL DEFAULT 1.0,
   val_incentive NUMERIC(8, 2) DEFAULT 1.0, -- compatibilidad
-  delivery_pin VARCHAR(4) NOT NULL DEFAULT '4821',
+  delivery_pin VARCHAR(4) NOT NULL DEFAULT lpad((floor(random() * 9000) + 1000)::int::text, 4, '0'),
   pin_attempts INT NOT NULL DEFAULT 0,
   whatsapp_shared BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -409,6 +409,13 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Orden no encontrada');
   END IF;
 
+  -- Autorización: solo el cliente o el cadete de la orden pueden liberar el pago
+  IF auth.uid() IS NULL
+     OR auth.uid() NOT IN (v_order.client_id, v_order.cadete_id, v_order.assigned_cadet_id)
+  THEN
+    RETURN jsonb_build_object('success', false, 'error', 'No autorizado para liberar esta orden');
+  END IF;
+
   IF v_order.status IN ('completado', 'completed') THEN
     RETURN jsonb_build_object('success', false, 'error', 'Esta orden ya fue completada');
   END IF;
@@ -529,12 +536,11 @@ ALTER TABLE public.wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.valens_transactions ENABLE ROW LEVEL SECURITY;
 
 -- 1. Políticas Profiles
+-- Solo el dueño puede leer su fila completa (contiene WhatsApp, CBU/CVU, CUIT, teléfono).
+-- Las lecturas públicas deben usar la vista segura public.profiles_public.
 DROP POLICY IF EXISTS "profiles_select_public_filtered" ON public.profiles;
-CREATE POLICY "profiles_select_public_filtered" ON public.profiles
-  FOR SELECT USING (
-    -- Excluir usuarios que hayan bloqueado al usuario actual o viceversa
-    NOT public.is_blocked_between(auth.uid(), id)
-  );
+CREATE POLICY "profiles_select_own" ON public.profiles
+  FOR SELECT USING (auth.uid() = id);
 
 DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
 CREATE POLICY "profiles_update_own" ON public.profiles
@@ -542,7 +548,7 @@ CREATE POLICY "profiles_update_own" ON public.profiles
 
 DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
 CREATE POLICY "profiles_insert_own" ON public.profiles
-  FOR INSERT WITH CHECK (auth.uid() = id OR auth.uid() IS NULL);
+  FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- 2. Políticas Orders
 DROP POLICY IF EXISTS "orders_select_policy" ON public.orders;
@@ -557,7 +563,10 @@ CREATE POLICY "orders_select_policy" ON public.orders
 
 DROP POLICY IF EXISTS "orders_insert_policy" ON public.orders;
 CREATE POLICY "orders_insert_policy" ON public.orders
-  FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+  FOR INSERT WITH CHECK (
+    auth.uid() IS NOT NULL
+    AND (client_id IS NULL OR client_id = auth.uid())
+  );
 
 DROP POLICY IF EXISTS "orders_update_policy" ON public.orders;
 CREATE POLICY "orders_update_policy" ON public.orders
@@ -584,11 +593,11 @@ CREATE POLICY "offers_update_policy" ON public.offers
 
 DROP POLICY IF EXISTS "bids_select_policy" ON public.bids;
 CREATE POLICY "bids_select_policy" ON public.bids
-  FOR SELECT USING (true);
+  FOR SELECT USING (auth.uid() IS NOT NULL);
 
 DROP POLICY IF EXISTS "bids_insert_policy" ON public.bids;
 CREATE POLICY "bids_insert_policy" ON public.bids
-  FOR INSERT WITH CHECK (true);
+  FOR INSERT WITH CHECK (auth.uid() = cadet_id);
 
 -- 4. Políticas Messages (Chat P2P Seguro)
 DROP POLICY IF EXISTS "messages_select_policy" ON public.messages;
@@ -648,7 +657,7 @@ CREATE POLICY "dex_orders_manage_own" ON public.dex_orders
 -- 9. Políticas Wallets
 DROP POLICY IF EXISTS "wallets_select" ON public.wallets;
 CREATE POLICY "wallets_select" ON public.wallets
-  FOR SELECT USING (true);
+  FOR SELECT USING (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "wallets_update_own" ON public.wallets;
 CREATE POLICY "wallets_update_own" ON public.wallets
@@ -662,7 +671,6 @@ CREATE POLICY "tx_select" ON public.valens_transactions
     OR auth.uid() = to_user
     OR auth.uid() = sender_id 
     OR auth.uid() = receiver_id
-    OR auth.uid() IS NULL
   );
 
 -- ====================================================================
@@ -851,6 +859,10 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'El monto debe ser mayor a 0 VAL entero.');
   END IF;
 
+  IF auth.uid() IS NULL OR auth.uid() <> p_sender_id THEN
+    RETURN jsonb_build_object('success', false, 'error', 'No autorizado: solo puedes transferir desde tu propia billetera.');
+  END IF;
+
   -- Bloquear billetera del emisor
   SELECT * INTO v_sender_wallet
   FROM public.wallets WHERE user_id = p_sender_id FOR UPDATE;
@@ -928,6 +940,10 @@ DECLARE
   v_drip    INTEGER := 5;
   v_tx_hash TEXT;
 BEGIN
+  IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN
+    RETURN jsonb_build_object('success', false, 'error', 'No autorizado: solo puedes reclamar para tu propia billetera.');
+  END IF;
+
   v_tx_hash := '0xfa' || encode(gen_random_bytes(8), 'hex');
 
   -- Acreditar 5 VAL enteros al usuario
@@ -959,4 +975,37 @@ BEGIN
     'message', '+' || v_drip || ' VAL acreditados desde el Grifo Testnet.'
   );
 END;
+$$;
+
+-- ====================================================================
+-- 23. FUNCIÓN RPC: BÚSQUEDA PÚBLICA DE USUARIOS (solo campos seguros)
+-- ====================================================================
+CREATE OR REPLACE FUNCTION public.search_community_users(search_term TEXT)
+RETURNS TABLE (
+  id UUID,
+  full_name TEXT,
+  username TEXT,
+  email TEXT,
+  avatar_url TEXT,
+  role TEXT,
+  is_online BOOLEAN,
+  coverage_zone TEXT,
+  vehicle_type TEXT,
+  payment_alias TEXT
+)
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT id, full_name, username, email, avatar_url, role,
+         is_online, coverage_zone, vehicle_type, payment_alias
+  FROM public.profiles
+  WHERE btrim(search_term) <> ''
+    AND (
+      full_name ILIKE '%' || btrim(search_term) || '%'
+      OR username ILIKE '%' || btrim(search_term) || '%'
+      OR email ILIKE '%' || btrim(search_term) || '%'
+      OR payment_alias ILIKE '%' || btrim(search_term) || '%'
+    )
+  LIMIT 50;
 $$;

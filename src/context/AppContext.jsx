@@ -153,25 +153,9 @@ export function AppProvider({ children }) {
   // ValensCoin balance (requirement: initial balance 10 VAL, 0 decimals - integers only)
   const [balance, setBalance] = useState(10);
 
-  // Dirección y semilla criptográfica BIP-39 generadas/cargadas desde localStorage
-  const [userSeedWords] = useState(() => {
-    try {
-      const saved = localStorage.getItem('gremami_seed_phrase');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    const fresh = generateSeedPhrase();
-    try { localStorage.setItem('gremami_seed_phrase', JSON.stringify(fresh)); } catch (e) {}
-    return fresh;
-  });
-  const [userPublicKey] = useState(() => {
-    try {
-      const saved = localStorage.getItem('gremami_public_address');
-      if (saved) return saved;
-    } catch (e) {}
-    const addr = derivePublicAddress(userSeedWords);
-    try { localStorage.setItem('gremami_public_address', addr); } catch (e) {}
-    return addr;
-  });
+  // Dirección y semilla criptográfica BIP-39 (solo en memoria; nunca en localStorage)
+  const [userSeedWords] = useState(() => generateSeedPhrase());
+  const [userPublicKey] = useState(() => derivePublicAddress(userSeedWords));
   const [userName, setUserName] = useState(() => {
     const urlTokens = extractTokensFromUrl();
     if (urlTokens?.accessToken) {

@@ -40,31 +40,6 @@ export const supabase = createClient(envUrl, envKey, {
   }
 });
 
-const buildMockGoogleUser = (fullName = 'Usuario Demo Google') => {
-  const now = Date.now();
-  const safeName = String(fullName || 'Usuario Demo Google').trim() || 'Usuario Demo Google';
-  const avatarUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
-
-  return {
-    id: `mock-google-user-${now}`,
-    email: `demo.google.${now}@gremami.test`,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    app_metadata: {
-      provider: 'google',
-      providers: ['google']
-    },
-    user_metadata: {
-      full_name: safeName,
-      name: safeName,
-      avatar_url: avatarUrl,
-      picture: avatarUrl,
-      role: 'cadete'
-    },
-    isMock: true
-  };
-};
-
 // ====================================================================
 // FUNCIÓN CENTRAL: SINCRONIZACIÓN AUTOMÁTICA DE PERFIL Y BILLETERA DUAL
 // ====================================================================
@@ -262,39 +237,8 @@ export const authService = {
 
       return result;
     } catch (error) {
-      // Solo cae aquí si hay un error real de red (CORS, Supabase caído, config incorrecta)
-      console.warn('[Auth] Google OAuth no disponible; activando sesión simulada (testnet):', error?.message || error);
-
-      const mockUser = buildMockGoogleUser('Usuario Demo Google');
-      const mockWallet = { valens_balance: 10.0 };
-      const mockProfile = {
-        full_name: mockUser.user_metadata.full_name,
-        avatar_url: mockUser.user_metadata.avatar_url,
-        role: 'cadete'
-      };
-
-      try {
-        localStorage.setItem('gremami_auth_user', JSON.stringify({
-          ...mockUser,
-          profile: mockProfile,
-          wallet: mockWallet
-        }));
-      } catch (e) {
-        console.warn('[Auth] No se pudo guardar la sesión mock en localStorage:', e);
-      }
-
-      return {
-        data: {
-          user: mockUser,
-          session: {
-            user: mockUser,
-            access_token: 'mock-google-access-token',
-            expires_at: Math.floor(Date.now() / 1000) + 3600
-          }
-        },
-        error: null,
-        source: 'mock'
-      };
+      console.warn('[Auth] Google OAuth no disponible:', error?.message || error);
+      return { data: null, error };
     }
   },
 
@@ -478,7 +422,7 @@ export const profileService = {
     }
 
     const { data, error } = await supabase
-      .from('profiles')
+      .from('profiles_public')
       .select('id, full_name, avatar_url, role, vehicle_type, service_modality, is_online, payment_alias, lat, lng, coverage_zone, last_location_update')
       .eq('is_online', true)
       .in('role', ['cadete', 'ambos']);
@@ -731,7 +675,7 @@ export const orderService = {
       base_price_ars: priceArs,
       reward_val: rewardVal,
       val_incentive: rewardVal,
-      delivery_pin: String(orderData.delivery_pin || '4821'),
+      delivery_pin: String(orderData.delivery_pin || Math.floor(1000 + Math.random() * 9000)),
       pin_attempts: 0,
       whatsapp_shared: Boolean(orderData.whatsapp_shared || false),
       cadete_id: orderData.cadete_id || null,
