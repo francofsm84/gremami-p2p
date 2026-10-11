@@ -404,18 +404,10 @@ export function AppProvider({ children }) {
       const urlTokens = extractTokensFromUrl();
       if (urlTokens?.accessToken) {
         console.info('[Auth] Token detectado en URL, estableciendo sesión...');
-        const payload = decodeJwtPayload(urlTokens.accessToken);
-        if (payload?.sub) {
-          const userFromToken = {
-            id: payload.sub,
-            email: payload.email,
-            user_metadata: payload.user_metadata || {},
-            app_metadata: payload.app_metadata || {}
-          };
-          await handleUserSession(userFromToken);
-        }
 
         try {
+          // Establecer la sesión ANTES de sincronizar perfil/billetera,
+          // para que las escrituras pasen las políticas RLS (auth.uid()).
           const { data: setSessionData, error: setSessionErr } = await supabase.auth.setSession({
             access_token: urlTokens.accessToken,
             refresh_token: urlTokens.refreshToken || ''
