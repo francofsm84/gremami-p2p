@@ -430,6 +430,11 @@ DECLARE
   v_ars NUMERIC;
   v_val NUMERIC;
 BEGIN
+  -- Autorización: rechazar llamadas anónimas antes de revelar si la orden existe
+  IF auth.uid() IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'No autorizado para liberar esta orden');
+  END IF;
+
   -- 1. Bloquear registro de la orden
   SELECT * INTO v_order
   FROM public.orders
@@ -441,9 +446,7 @@ BEGIN
   END IF;
 
   -- Autorización: solo el cliente o el cadete de la orden pueden liberar el pago
-  IF auth.uid() IS NULL
-     OR auth.uid() NOT IN (v_order.client_id, v_order.cadete_id, v_order.assigned_cadet_id)
-  THEN
+  IF auth.uid() NOT IN (v_order.client_id, v_order.cadete_id, v_order.assigned_cadet_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'No autorizado para liberar esta orden');
   END IF;
 
