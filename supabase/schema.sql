@@ -52,37 +52,6 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS username TEXT;
 CREATE INDEX IF NOT EXISTS idx_profiles_email    ON public.profiles(email);
 CREATE INDEX IF NOT EXISTS idx_profiles_username ON public.profiles(username);
 
--- Vista Segura: Perfiles Públicos con Enmascaramiento de WhatsApp Sensible
-CREATE OR REPLACE VIEW public.profiles_public AS
-  SELECT 
-    p.id,
-    p.full_name,
-    p.avatar_url,
-    p.role,
-    p.vehicle_type,
-    p.service_modality,
-    p.is_online,
-    p.payment_alias,
-    p.coverage_zone,
-    p.lat,
-    p.lng,
-    p.last_location_update,
-    p.referral_code,
-    p.referred_by,
-    p.created_at,
-    -- El número de WhatsApp permanece privado por defecto, solo visible si se compartió en una orden activa
-    CASE 
-      WHEN auth.uid() = p.id THEN p.whatsapp
-      WHEN EXISTS (
-        SELECT 1 FROM public.orders o
-        WHERE o.whatsapp_shared = true
-          AND ((o.client_id = auth.uid() AND (o.cadete_id = p.id OR o.assigned_cadet_id = p.id))
-            OR ((o.cadete_id = auth.uid() OR o.assigned_cadet_id = auth.uid()) AND o.client_id = p.id))
-      ) THEN p.whatsapp
-      ELSE NULL
-    END AS whatsapp
-  FROM public.profiles p;
-
 -- ====================================================================
 -- 2. TABLA: ORDERS (Mandados / Solicitudes de Logística P2P)
 -- ====================================================================
@@ -113,6 +82,37 @@ CREATE TABLE IF NOT EXISTS public.orders (
   completed_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Vista Segura: Perfiles Públicos con Enmascaramiento de WhatsApp Sensible
+CREATE OR REPLACE VIEW public.profiles_public AS
+  SELECT 
+    p.id,
+    p.full_name,
+    p.avatar_url,
+    p.role,
+    p.vehicle_type,
+    p.service_modality,
+    p.is_online,
+    p.payment_alias,
+    p.coverage_zone,
+    p.lat,
+    p.lng,
+    p.last_location_update,
+    p.referral_code,
+    p.referred_by,
+    p.created_at,
+    -- El número de WhatsApp permanece privado por defecto, solo visible si se compartió en una orden activa
+    CASE 
+      WHEN auth.uid() = p.id THEN p.whatsapp
+      WHEN EXISTS (
+        SELECT 1 FROM public.orders o
+        WHERE o.whatsapp_shared = true
+          AND ((o.client_id = auth.uid() AND (o.cadete_id = p.id OR o.assigned_cadet_id = p.id))
+            OR ((o.cadete_id = auth.uid() OR o.assigned_cadet_id = auth.uid()) AND o.client_id = p.id))
+      ) THEN p.whatsapp
+      ELSE NULL
+    END AS whatsapp
+  FROM public.profiles p;
 
 -- Vista de compatibilidad para "mandados"
 CREATE OR REPLACE VIEW public.mandados AS
