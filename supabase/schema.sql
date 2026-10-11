@@ -803,6 +803,14 @@ INSERT INTO public.token_genesis (
 SELECT 'VAL', 'ValensCoin', 1000000000000, 0, 5, 10, 1000000000000
 WHERE NOT EXISTS (SELECT 1 FROM public.token_genesis WHERE token_symbol = 'VAL');
 
+-- Seguridad de token_genesis: legible públicamente, pero solo escribible
+-- por las funciones SECURITY DEFINER internas (no por clientes anon/authenticated).
+ALTER TABLE public.token_genesis ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "token_genesis_select_public" ON public.token_genesis;
+CREATE POLICY "token_genesis_select_public" ON public.token_genesis
+  FOR SELECT USING (true);
+
 -- ====================================================================
 -- 19. EXTENSIÓN DE WALLETS — Campos Cripto para ValensCoin L1
 -- ====================================================================
